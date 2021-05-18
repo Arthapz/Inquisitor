@@ -1,0 +1,24 @@
+{
+    "token": "<YOUR_TOKEN>",
+    "enabled_plugins": [
+        "HelloPlugin",
+        "Rules"
+    ],
+    "HelloPlugin": {
+        "channel_id": "344916712744943617"
+    },
+    "ImBetterThan": {
+        "user_id": "686254163985825800"
+    },
+    "Rules": {
+        "rule_message_id": "620620040865316904",
+        "rules": [
+            "Tout le monde doit se respecter, s'encourager ou s'entraider.",
+            "Si vous voulez demander de l'aide, posez votre question directement (et ajouté toute les informations nécessaire pour que votre interlocuteur puisse comprendre).",
+            "Vous devez respecter le thème de chaque channel.",
+            "Aucune pub sauvage n'est admise. (prenez au moins la peine de vous présenter).",
+            "Aucun NSFW.",
+            "Une présentation dans #🙋presentation_membres histoire de savoir qui vous êtes / votre objectif, c'est toujours mieux de savoir  a qui on parle ;)"
+        ]
+    }
+}
