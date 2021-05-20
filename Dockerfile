@@ -24,6 +24,7 @@ COPY facts.txt /root/
 WORKDIR /usr/src/inquisitor/builddir
 
 RUN cp ./inquisitor /root/inquisitor
+RUN cp -r ./plugins /root/
 
 RUN rm -Rf /usr/src/*
 RUN rm -Rf /root/.cache/vcpkg
