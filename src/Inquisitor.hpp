@@ -44,8 +44,8 @@ class Inquisitor final: public storm::core::App {
   public:
     using json = nlohmann::json;
 
-    static constexpr auto MAJOR_VERSION = "3";
-    static constexpr auto MINOR_VERSION = "0";
+    static constexpr auto MAJOR_VERSION = 3;
+    static constexpr auto MINOR_VERSION = 0;
 
     Inquisitor() noexcept;
     ~Inquisitor() override;
@@ -61,10 +61,6 @@ class Inquisitor final: public storm::core::App {
     void loadPlugins();
     void loadPlugin(const std::filesystem::path &path);
     void initializeBot();
-
-    void onReady();
-    void printHelp(const json &msg);
-    void printPlugins(const json &msg);
 
     std::atomic_bool m_run = true;
 
@@ -82,7 +78,7 @@ class Inquisitor final: public storm::core::App {
 
     std::vector<std::string> m_hello_channel_ids;
 
-    storm::core::HashMap<std::string, std::string> m_plugin_options;
+    storm::core::HashMap<std::string, json> m_plugin_options;
 
     std::shared_ptr<boost::asio::io_context> m_asio_context;
     std::shared_ptr<Bot> m_bot;

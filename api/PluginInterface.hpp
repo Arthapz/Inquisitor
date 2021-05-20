@@ -11,6 +11,8 @@
 /////////// - nlohmann-json - ///////////
 #include <nlohmann/json.hpp>
 
+class PluginInterface;
+
 class PluginInterface {
   public:
     using json = nlohmann::json;
@@ -20,19 +22,21 @@ class PluginInterface {
     PluginInterface() noexcept;
     virtual ~PluginInterface() = 0;
 
-    void initialize(SendFunction &&func);
-
-    virtual void setOptions(std::string_view options) {}
+    void initialize(SendFunction &&func, const json &options, std::vector<const PluginInterface*> others);
 
     [[nodiscard]] virtual std::string_view name() const    = 0;
-    [[nodiscard]] virtual std::string_view command() const = 0;
+    [[nodiscard]] virtual std::vector<std::string_view> commands() const = 0;
     [[nodiscard]] virtual std::string_view help() const    = 0;
-    virtual void onCommand(const json &msg) {};
+    virtual void onCommand(std::string_view command, const json &msg) {};
 
+    virtual void onReady(const json &msg) {};
     virtual void onMessageReceived(const json& msg) {};
 
   protected:
+    virtual void initialize(const json &options) {};
+
     SendFunction sendMessage;
+    std::vector<const PluginInterface*> m_others;
 };
 
 #define INQUISITOR_PLUGIN(type)                    \

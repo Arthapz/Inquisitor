@@ -1,3 +1,3 @@
- subdir('HelloPlugin')
+ subdir('BasePlugin')
  subdir('RandomQuotePlugin')
  subdir('QuoteMessagePlugin')

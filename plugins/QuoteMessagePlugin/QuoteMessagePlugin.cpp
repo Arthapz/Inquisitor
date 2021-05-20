@@ -23,12 +23,18 @@ auto QuoteMessagePlugin::name() const -> std::string_view {
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto QuoteMessagePlugin::command() const -> std::string_view {
-    return "";
+auto QuoteMessagePlugin::commands() const -> std::vector<std::string_view> {
+    return {};
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
 auto QuoteMessagePlugin::help() const -> std::string_view {
     return "";
+}
+
+/////////////////////////////////////
+/////////////////////////////////////
+auto QuoteMessagePlugin::onMessageReceived(const json &msg) -> void {
+
 }

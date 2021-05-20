@@ -40,46 +40,25 @@ RandomQuotePlugin::~RandomQuotePlugin() = default;
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto RandomQuotePlugin::setOptions(std::string_view options) -> void {
-    auto object = json::parse(options);
-
-    if(!object.contains("channels")) {
-        elog("Missing channels array in options");
-        return;
-    }
-
-    if(!object["channels"].is_array()) {
-        elog("Option entry \"channels\" array need to be an array");
-        return;
-    }
-
-    m_channels = object["channels"].get<std::vector<std::string>>();
-
-    for(const auto &channel : m_channels)
-        m_last_sended_messages[channel] = Clock::now();
-}
-
-/////////////////////////////////////
-/////////////////////////////////////
 auto RandomQuotePlugin::name() const -> std::string_view {
     return "RandomQuotePlugin";
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto RandomQuotePlugin::command() const -> std::string_view {
-    return "random-quote";
+auto RandomQuotePlugin::commands() const -> std::vector<std::string_view> {
+    return { "random-quote" };
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
 auto RandomQuotePlugin::help() const -> std::string_view {
-    return "Print a random quote";
+    return "🔵 **random-quote** -> Print a random quote";
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-void RandomQuotePlugin::onCommand(const json &msg) {
+auto RandomQuotePlugin::onCommand(std::string_view command, const json &msg) -> void {
     sendQuote(msg);
 }
 
@@ -99,6 +78,26 @@ auto RandomQuotePlugin::onMessageReceived(const json &msg) -> void {
 
     auto n = m_send_distribution(m_generator);
     if(n == 50) sendQuote(msg);
+}
+
+
+/////////////////////////////////////
+/////////////////////////////////////
+auto RandomQuotePlugin::initialize(const json &options) -> void {
+    if(!options.contains("channels")) {
+        elog("Missing channels array in options");
+        return;
+    }
+
+    if(!options["channels"].is_array()) {
+        elog("Option entry \"channels\" array need to be an array");
+        return;
+    }
+
+    m_channels = options["channels"].get<std::vector<std::string>>();
+
+    for(const auto &channel : m_channels)
+        m_last_sended_messages[channel] = Clock::now();
 }
 
 /////////////////////////////////////

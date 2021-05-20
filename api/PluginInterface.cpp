@@ -13,6 +13,12 @@ PluginInterface::PluginInterface() noexcept = default;
 /////////////////////////////////////
 PluginInterface::~PluginInterface() = default;
 
-auto PluginInterface::initialize(SendFunction &&func) -> void {
+/////////////////////////////////////
+/////////////////////////////////////
+auto PluginInterface::initialize(SendFunction &&func, const json &options, std::vector<const PluginInterface*> others) -> void {
     sendMessage = std::move(func);
+
+    m_others = std::move(others);
+
+    initialize(options);
 }

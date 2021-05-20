@@ -16,6 +16,8 @@ class QuoteMessagePlugin final: public PluginInterface {
     ~QuoteMessagePlugin() override;
 
     [[nodiscard]] std::string_view name() const override;
-    [[nodiscard]] std::string_view command() const override;
+    [[nodiscard]] std::vector<std::string_view> commands() const override;
     [[nodiscard]] std::string_view help() const override;
+
+    void onMessageReceived(const json &msg) override;
 };

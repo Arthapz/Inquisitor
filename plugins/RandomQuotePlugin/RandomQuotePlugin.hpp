@@ -22,14 +22,15 @@ class RandomQuotePlugin final: public PluginInterface {
     RandomQuotePlugin();
     ~RandomQuotePlugin() override;
 
-    void setOptions(std::string_view options) override;
-
     [[nodiscard]] std::string_view name() const override;
-    [[nodiscard]] std::string_view command() const override;
+    [[nodiscard]] std::vector<std::string_view> commands() const override;
     [[nodiscard]] std::string_view help() const override;
-    void onCommand(const json &msg) override;
+    void onCommand(std::string_view command, const json &msg) override;
 
-    void onMessageReceived(const json &msg);
+    void onMessageReceived(const json &msg) override;
+
+  protected:
+    void initialize(const json &options) override;
 
   private:
     using Clock = std::chrono::high_resolution_clock;
