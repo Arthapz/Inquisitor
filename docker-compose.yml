@@ -2,3 +2,6 @@ version: "3.9"
 services:
    inquisitor:
       build: .
+      volumes:
+         - ./settings.json:/root/settings.json
+         - ./facts.txt:/root/facts.txt
