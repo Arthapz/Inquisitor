@@ -584,5 +584,4 @@ healthchecksdb
 builddir-release
 
 settings.json
-
-subprojects/sleepy-discord
+facts.txt
