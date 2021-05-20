@@ -106,7 +106,12 @@ auto Inquisitor::loadPlugin(const std::filesystem::path &path) -> void {
 /////////////////////////////////////
 /////////////////////////////////////
 auto Inquisitor::initializeBot() -> void {
-    discordpp::log::filter = discordpp::log::info;
+#ifdef STORMKIT_BUILD_DEBUG
+    discordpp::log::filter = discordpp::log::trace;
+#else
+    discordpp::log::filter = discordpp::log::trace;
+#endif
+
     discordpp::log::out = &std::cerr;
 
     m_asio_context = std::make_shared<boost::asio::io_context>();
@@ -134,15 +139,34 @@ auto Inquisitor::initializeBot() -> void {
         plugins.emplace_back(plugin.interface);
 
     for(auto &plugin : m_plugins) {
-    plugin.interface->initialize([this](std::string channel_id, const json &msg) {
-        m_bot->call("POST",
-                    fmt::format("/channels/{}/messages", channel_id),
-                    msg);
-        }, m_plugin_options.at(std::string{plugin.interface->name()}), plugins);
+        plugin.interface->initialize(PluginInterface::Functions { [this](std::string channel_id,
+                                                                         const json &msg) {
+                                                                     m_bot->call("POST",
+                                                                                 fmt::format("/channels/{}/messages", channel_id),
+                                                                                 msg);
+                                                                 },
+                                                                  [this](std::string channel_id,
+                                                                         std::string message_id,
+                                                                         std::function<void(const json &)> on_response) {
+                                                                      m_bot->call("GET",
+                                                                                  fmt::format("/channels/{}/messages/{}", channel_id, message_id),
+                                                                                  [on_response](const bool error, const json msg) {
+                                                                                      on_response(msg);
+                                                                                  });
+                                                                  },
+                                                                  [this](std::string channel_id,
+                                                                         std::function<void(const json &)> on_response) {
+                                                                      m_bot->call("GET",
+                                                                                  fmt::format("/channels/{}", channel_id),
+                                                                                  [on_response](const bool error, const json msg) {
+                                                                                      on_response(msg);
+                                                                                  });
+                                                                      },
+        },m_plugin_options.at(std::string{plugin.interface->name()}), plugins);
 
         for(auto command : plugin.interface->commands()) {
             m_bot->respond(std::string{command},
-                               [command, &plugin](json data) { plugin.interface->onCommand(command, data); });
+                           [command, &plugin](json data) { plugin.interface->onCommand(command, data); });
         }
     }
 

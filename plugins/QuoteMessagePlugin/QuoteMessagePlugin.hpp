@@ -6,6 +6,7 @@
 
 /////////// - STL - ///////////
 #include <string>
+#include <regex>
 
 /////////// - Inquisitor-API - ///////////
 #include <PluginInterface.hpp>
@@ -20,4 +21,6 @@ class QuoteMessagePlugin final: public PluginInterface {
     [[nodiscard]] std::string_view help() const override;
 
     void onMessageReceived(const json &msg) override;
+  private:
+    std::regex m_regex;
 };

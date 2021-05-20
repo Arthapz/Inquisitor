@@ -7,6 +7,7 @@
 /////////// - STL - ///////////
 #include <string>
 #include <string_view>
+#include <future>
 
 /////////// - nlohmann-json - ///////////
 #include <nlohmann/json.hpp>
@@ -18,11 +19,19 @@ class PluginInterface {
     using json = nlohmann::json;
 
     using SendFunction = std::function<void(std::string channel_id, const json &msg)>;
+    using GetMessageFunction = std::function<void(std::string channel_id, std::string message_id, std::function<void(const json &json)> on_response)>;
+    using GetChannelFunction = std::function<void(std::string channel_id, std::function<void(const json &json)> on_response)>;
+
+    struct Functions {
+        SendFunction send_func;
+        GetMessageFunction get_message_func;
+        GetChannelFunction get_channel_func;
+    };
 
     PluginInterface() noexcept;
     virtual ~PluginInterface() = 0;
 
-    void initialize(SendFunction &&func, const json &options, std::vector<const PluginInterface*> others);
+    void initialize(Functions&& functions, const json &options, std::vector<const PluginInterface*> others);
 
     [[nodiscard]] virtual std::string_view name() const    = 0;
     [[nodiscard]] virtual std::vector<std::string_view> commands() const = 0;
@@ -36,6 +45,9 @@ class PluginInterface {
     virtual void initialize(const json &options) {};
 
     SendFunction sendMessage;
+    GetMessageFunction getMessage;
+    GetChannelFunction getChannel;
+
     std::vector<const PluginInterface*> m_others;
 };
 

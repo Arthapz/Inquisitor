@@ -15,7 +15,7 @@ WORKDIR /usr/src/inquisitor
 RUN export NINJA_STATUS=$'\x1b[32m[%f/%t] \x1b[0m'
 RUN export CLICOLOR_FORCE="ninja mp"
 
-RUN meson builddir --buildtype release --cmake-prefix-path /usr/src/vcpkg/installed/x64-linux
+RUN meson builddir --buildtype release --cmake-prefix-path /usr/src/vcpkg/installed/x64-linux -Dstormkit:buildtype=release
 RUN ninja -C builddir -j4
 
 COPY settings.json /root/

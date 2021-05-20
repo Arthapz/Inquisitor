@@ -9,7 +9,8 @@ project(
                       'stormkit:enable_window=false',
                       'stormkit:enable_window_xcb=false',
                       'stormkit:enable_window_wayland=false',
-                      'stormkit:library_type=static']
+                      'stormkit:library_type=static',
+                      'stormkit:buildtype=debug']
 )
 
 cmake = import('cmake')
