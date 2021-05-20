@@ -29,4 +29,6 @@ RUN cp -r ./plugins /root/
 RUN rm -Rf /usr/src/*
 RUN rm -Rf /root/.cache/vcpkg
 
+WORKDIR /root
+
 CMD ["./inquisitor"]
