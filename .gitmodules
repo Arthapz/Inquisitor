@@ -1,0 +1,21 @@
+[submodule "subprojects/aegis"]
+	path = subprojects/aegis
+	url = https://github.com/zeroxs/aegis.cpp.git
+[submodule "subprojects/discordpp"]
+	path = subprojects/discordpp
+	url = https://github.com/DiscordPP/discordpp.git
+[submodule "subprojects/discordpp-plugin-overload"]
+	path = subprojects/discordpp-plugin-overload
+	url = https://github.com/DiscordPP/plugin-overload.git
+[submodule "subprojects/discord-plugin-ratelimit"]
+	path = subprojects/discord-plugin-ratelimit
+	url = https://github.com/DiscordPP/plugin-ratelimit.git
+[submodule "subprojects/discord-plugin-responder"]
+	path = subprojects/discord-plugin-responder
+	url = https://github.com/DiscordPP/plugin-responder.git
+[submodule "subprojects/discordpp-reest-beast"]
+	path = subprojects/discordpp-reest-beast
+	url = https://github.com/DiscordPP/rest-beast.git
+[submodule "subprojects/discordpp-websocket-simpleweb"]
+	path = subprojects/discordpp-websocket-simpleweb
+	url = https://github.com/DiscordPP/websocket-simpleweb.git

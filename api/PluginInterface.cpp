@@ -7,8 +7,12 @@
 
 /////////////////////////////////////
 /////////////////////////////////////
-PluginInterface::PluginInterface() = default;
+PluginInterface::PluginInterface() noexcept = default;
 
 /////////////////////////////////////
 /////////////////////////////////////
 PluginInterface::~PluginInterface() = default;
+
+auto PluginInterface::initialize(SendFunction &&func) -> void {
+    sendMessage = std::move(func);
+}

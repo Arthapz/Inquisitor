@@ -5,18 +5,34 @@
 #pragma once
 
 /////////// - STL - ///////////
+#include <string>
 #include <string_view>
+
+/////////// - nlohmann-json - ///////////
+#include <nlohmann/json.hpp>
 
 class PluginInterface {
   public:
-    PluginInterface();
+    using json = nlohmann::json;
+
+    using SendFunction = std::function<void(std::string channel_id, const json &msg)>;
+
+    PluginInterface() noexcept;
     virtual ~PluginInterface() = 0;
+
+    void initialize(SendFunction &&func);
+
+    virtual void setOptions(std::string_view options) {}
 
     [[nodiscard]] virtual std::string_view name() const    = 0;
     [[nodiscard]] virtual std::string_view command() const = 0;
     [[nodiscard]] virtual std::string_view help() const    = 0;
+    virtual void onCommand(const json &msg) {};
 
-    [[nodiscard]] virtual void run() const {}
+    virtual void onMessageReceived(const json& msg) {};
+
+  protected:
+    SendFunction sendMessage;
 };
 
 #define INQUISITOR_PLUGIN(type)                    \

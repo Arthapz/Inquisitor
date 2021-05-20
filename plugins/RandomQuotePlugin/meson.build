@@ -1,11 +1,12 @@
-dependencies = [inquisitor_api_dep]
- 
+dependencies = [stormkit_core_dep, stormkit_log_dep, json_dep, inquisitor_api_dep]
+
 sources = files([
     'RandomQuotePlugin.cpp'
 ])
  
 headers = files([
-    'RandomQuotePlugin.hpp'
+    'RandomQuotePlugin.hpp',
+    'Log.hpp'
 ])
  
 hello_plugin = shared_library(

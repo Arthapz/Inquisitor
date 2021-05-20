@@ -1,11 +1,12 @@
-dependencies = [inquisitor_api_dep]
- 
+dependencies = [stormkit_core_dep, stormkit_log_dep, json_dep, inquisitor_api_dep]
+
 sources = files([
     'QuoteMessagePlugin.cpp'
 ])
  
 headers = files([
-    'QuoteMessagePlugin.hpp'
+    'QuoteMessagePlugin.hpp',
+    'Log.hpp'
 ])
  
 hello_plugin = shared_library(

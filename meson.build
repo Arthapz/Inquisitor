@@ -18,34 +18,52 @@ stormkit_core_dep   = dependency('stormkit_core')
 stormkit_log_dep    = dependency('stormkit_log')
 stormkit_render_dep = dependency('stormkit_render')
 stormkit_module_dep = dependency('stormkit_module')
-rapidjson_dep       = dependency('RapidJSON')
-openssl_dep         = dependency('OpenSSL')
+json_dep            = dependency('nlohmann_json')
 fmt_dep             = dependency('fmt')
+ssl_dep             = dependency('OpenSSL')
+boost_dep           = dependency('boost')
+threads_dep           = dependency('threads')
 
-sleepy_discord_opt = cmake.subproject_options()
-sleepy_discord_opt.add_cmake_defines({'USE_ASIO': true})
-sleepy_discord_opt.add_cmake_defines({'USE_WEBSOCKETPP': true})
-sleepy_discord_opt.add_cmake_defines({'USE_UWEBSOCKETS': false})
-sleepy_discord_opt.add_cmake_defines({'USE_CPR': true})
-sleepy_discord_opt.add_cmake_defines({'USE_ZLIB': true})
+discordpp_opt = cmake.subproject_options()
+discordpp_opt.add_cmake_defines({'CMAKE_CXX_STANDARD': '17'})
 
-sleepy_discord_proj = cmake.subproject('sleepy-discord', options: sleepy_discord_opt)
+discordpp_proj = cmake.subproject('discordpp', options: discordpp_opt)
+discordpp_plugin_overload_proj = cmake.subproject('discordpp-plugin-overload', options: discordpp_opt)
+discordpp_reast_beast_proj = cmake.subproject('discordpp-reest-beast', options: discordpp_opt)
+discordpp_websocket_simpleweb_proj = cmake.subproject('discordpp-websocket-simpleweb', options: discordpp_opt)
+discordpp_plugin_ratelimit_proj = cmake.subproject('discord-plugin-ratelimit', options: discordpp_opt)
+discordpp_plugin_responder_proj = cmake.subproject('discord-plugin-responder', options: discordpp_opt)
 
-sleepy_discord_dep  = sleepy_discord_proj.dependency('sleepy-discord')
-cpr_dep  = sleepy_discord_proj.dependency('cpr')
+discordpp_dep  = discordpp_proj.dependency('discordpp')
+discordpp_plugin_overload_dep = discordpp_plugin_overload_proj.dependency('discordpp-plugin-overload')
+discordpp_reast_beast_dep = discordpp_reast_beast_proj.dependency('beast')
+discordpp_websocket_simpleweb_dep = discordpp_websocket_simpleweb_proj.dependency('discordpp-websocket-simpleweb')
+discordpp_plugin_ratelimit_dep = discordpp_plugin_ratelimit_proj.dependency('discordpp-plugin-ratelimit')
+discordpp_plugin_responder_dep = discordpp_plugin_responder_proj.dependency('discordpp-plugin-responder')
 
-dependencies = [stormkit_core_dep, stormkit_log_dep, stormkit_render_dep, stormkit_module_dep, rapidjson_dep, sleepy_discord_dep, cpr_dep, openssl_dep, fmt_dep]
+dependencies = [stormkit_core_dep,
+                stormkit_log_dep,
+                stormkit_render_dep,
+                stormkit_module_dep,
+                json_dep,
+                discordpp_dep,
+                discordpp_plugin_overload_dep,
+                discordpp_reast_beast_dep,
+                discordpp_websocket_simpleweb_dep,
+                discordpp_plugin_ratelimit_dep,
+                discordpp_plugin_responder_dep,
+                fmt_dep,
+                ssl_dep,
+                threads_dep]
 
 inquisitor_api_inc = include_directories(['api/'])
 
 sources = files([
     'src/main.cpp',
-    'src/Bot.cpp',
     'src/Inquisitor.cpp',
 ])
 
 headers = files([
-    'src/Bot.hpp',
     'src/Fwd.hpp',
     'src/Inquisitor.hpp',
     'src/Log.hpp',
@@ -63,6 +81,7 @@ api_headers = files([
 inquisitor_api = static_library(
     'inquisitor_api',
     api_sources,
+    dependencies: json_dep,
     extra_files: api_headers
 )
 

@@ -6,26 +6,43 @@
 
 /////////// - STL - ///////////
 #include <string>
+#include <string_view>
 #include <random>
+#include <chrono>
 
 /////////// - Inquisitor-API - ///////////
 #include <PluginInterface.hpp>
+
+/////////// - StormKit::core - ///////////
+#include <storm/core/Types.hpp>
+#include <storm/core/HashMap.hpp>
 
 class RandomQuotePlugin final: public PluginInterface {
   public:
     RandomQuotePlugin();
     ~RandomQuotePlugin() override;
 
+    void setOptions(std::string_view options) override;
+
     [[nodiscard]] std::string_view name() const override;
     [[nodiscard]] std::string_view command() const override;
     [[nodiscard]] std::string_view help() const override;
+    void onCommand(const json &msg) override;
 
-    [[nodiscard]] void run() const override;
-
-    void run() const override;
+    void onMessageReceived(const json &msg);
 
   private:
-    std::uniform_int_distribution<storm::core::UInt32> m_distribution;
+    using Clock = std::chrono::high_resolution_clock;
+
+    void sendQuote(const json &msg);
+
+    std::mt19937 m_generator;
+    std::uniform_int_distribution<storm::core::UInt32> m_send_distribution;
+    std::uniform_int_distribution<storm::core::UInt32> m_quote_distribution;
+
+    std::vector<std::string> m_channels;
 
     std::vector<std::string> m_quote_list;
+
+    storm::core::HashMap<std::string, Clock::time_point> m_last_sended_messages;
 };

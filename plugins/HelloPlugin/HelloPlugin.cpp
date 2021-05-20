@@ -24,11 +24,11 @@ auto HelloPlugin::name() const -> std::string_view {
 /////////////////////////////////////
 /////////////////////////////////////
 auto HelloPlugin::command() const -> std::string_view {
-    return "";
+    return "hello";
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
 auto HelloPlugin::help() const -> std::string_view {
-    return "";
+    return "Say hello";
 }
