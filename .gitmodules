@@ -1,6 +1,3 @@
-[submodule "subprojects/aegis"]
-	path = subprojects/aegis
-	url = https://github.com/zeroxs/aegis.cpp.git
 [submodule "subprojects/discordpp"]
 	path = subprojects/discordpp
 	url = https://github.com/DiscordPP/discordpp.git

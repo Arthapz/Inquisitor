@@ -2,6 +2,8 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level of this distribution
 
+#define STORMKIT_BUILD_DEBUG
+
 /////////// - STL - ///////////
 #include <csignal>
 
@@ -229,7 +231,9 @@ auto Inquisitor::initializeBot() -> void {
 
         for(auto command : plugin.interface->commands()) {
             m_bot->respond(std::string{command},
-                           [command, &plugin](json data) { plugin.interface->onCommand(command, data); });
+                           [command, &plugin](json data) {
+                               plugin.interface->onCommand(command, data);
+                           });
         }
     }
 

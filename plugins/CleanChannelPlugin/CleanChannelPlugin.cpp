@@ -35,13 +35,25 @@ auto CleanChannelPlugin::commands() const -> std::vector<std::string_view> {
 /////////////////////////////////////
 /////////////////////////////////////
 auto CleanChannelPlugin::help() const -> std::string_view {
-    return "🔵 **clean-channel** -> Clean (remove all non-images posts) a channel";
+    return "🔵 **clean-channel** -> Clean (remove all non-images posts) a channel, only usable by moderators";
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
 auto CleanChannelPlugin::onCommand(std::string_view command, const json &msg) -> void {
+    auto moderator = msg["author"]["id"].get<std::string>();
     auto channel = msg["channel_id"].get<std::string>();
+
+    auto is_legal_user = std::ranges::find(m_moderators, moderator) != std::ranges::cend(m_moderators);
+    if(!is_legal_user) {
+        auto response = json {
+            {"content", "You are not a moderator, abording"}
+        };
+
+        sendMessage(channel, std::move(response));
+
+        return;
+    }
 
     auto is_legal_channel = std::ranges::find(m_channels, channel) != std::ranges::cend(m_channels);
     if(!is_legal_channel) {
@@ -77,6 +89,18 @@ auto CleanChannelPlugin::initialize(const json &options) -> void {
     }
 
     m_channels = options["channels"].get<std::vector<std::string>>();
+
+    if(!options.contains("moderators")) {
+        elog("Missing moderators array in options");
+        return;
+    }
+
+    if(!options["moderators"].is_array()) {
+        elog("Option entry \"moderators\" array need to be an array");
+        return;
+    }
+
+    m_moderators = options["moderators"].get<std::vector<std::string>>();
 }
 
 /////////////////////////////////////
@@ -93,14 +117,19 @@ auto CleanChannelPlugin::cleanChannel(std::string channel) -> void {
     static constexpr auto UNDER_14 = [](const json &message) {
         auto now = std::chrono::high_resolution_clock::now();
 
-        auto timestamp = (std::chrono::time_point_cast<std::chrono::days>(now) - std::chrono::days{14}).time_since_epoch().count();
+        auto delta = now - std::chrono::days{14};
 
-        auto message_timestamp = storm::core::UInt32{};
-        auto message_timestamp_string = message["timestamp"].get<std::string>();
+        auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(delta.time_since_epoch()).count();
 
-        std::from_chars(std::data(message_timestamp_string), std::data(message_timestamp_string) + std::size(message_timestamp_string), message_timestamp);
+        auto message_timestamp_string = storm::core::split(message["timestamp"].get<std::string>(), '.');
+        auto ss = std::istringstream{message_timestamp_string[0]};
 
-        return timestamp >= message_timestamp;
+        auto tm = std::tm{};
+        ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+
+        auto tp = std::chrono::high_resolution_clock::from_time_t(std::mktime(&tm)).time_since_epoch().count() / 1000000000;
+
+        return timestamp <= tp;
     };
 
     getAllMessage(channel, [this, channel = channel](const json &msgs) {
@@ -109,6 +138,8 @@ auto CleanChannelPlugin::cleanChannel(std::string channel) -> void {
 
         auto ids_view = messages | std::views::filter(UNDER_14) | std::views::filter(NO_IMAGE) | std::views::transform(GET_MESSAGE_ID);
         auto ids = std::vector<std::string>{std::ranges::begin(ids_view), std::ranges::end(ids_view)};
+
+        ilog("{}", std::size(ids));
 
         if(std::empty(ids)) return;
         else if(std::size(ids) == 1)

@@ -28,5 +28,7 @@ class CleanChannelPlugin final: public PluginInterface {
   private:
     void cleanChannel(std::string channel);
 
+    std::vector<std::string> m_moderators;
+
     std::vector<std::string> m_channels;
 };

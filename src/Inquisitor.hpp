@@ -77,7 +77,6 @@ class Inquisitor final: public storm::core::App {
     std::vector<std::string> m_enabled_plugins;
     std::vector<Plugin> m_plugins;
 
-    std::vector<std::string> m_hello_channel_ids;
 
     storm::core::HashMap<std::string, json> m_plugin_options;
 

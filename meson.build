@@ -28,6 +28,10 @@ threads_dep           = dependency('threads')
 discordpp_opt = cmake.subproject_options()
 discordpp_opt.add_cmake_defines({'CMAKE_CXX_STANDARD': '17'})
 
+if get_option('vcpkg_toolchain_file') != 'novcpkg'
+    discordpp_opt.add_cmake_defines({'CMAKE_TOOLCHAIN_FILE': get_option('vcpkg_toolchain_file')})
+endif
+
 discordpp_proj = cmake.subproject('discordpp', options: discordpp_opt)
 discordpp_plugin_overload_proj = cmake.subproject('discordpp-plugin-overload', options: discordpp_opt)
 discordpp_reast_beast_proj = cmake.subproject('discordpp-reest-beast', options: discordpp_opt)
