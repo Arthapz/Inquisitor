@@ -4,7 +4,6 @@
 
 #pragma once
 
-#define STORMKIT_BUILD_DEBUG
 
 /////////// - STL - ///////////
 #include <atomic>
