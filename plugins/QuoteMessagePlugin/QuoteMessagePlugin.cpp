@@ -12,7 +12,7 @@ static constexpr auto REGEX = R"(https?:\/\/discord.com\/channels\/([[:digit:]]+
 
 /////////////////////////////////////
 /////////////////////////////////////
-QuoteMessagePlugin::QuoteMessagePlugin()
+QuoteMessagePlugin::QuoteMessagePlugin() noexcept
     : m_regex{REGEX, std::regex::ECMAScript | std::regex::optimize | std::regex::icase} {}
 
 /////////////////////////////////////

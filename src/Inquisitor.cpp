@@ -97,7 +97,6 @@ auto Inquisitor::loadPlugin(const std::filesystem::path &path) -> void {
 
     if(std::ranges::find(m_enabled_plugins, plugin_interface->name()) == std::ranges::cend(m_enabled_plugins)) return;
 
-
     ilog("{} loaded", plugin_name);
 
     m_plugins.emplace_back(Plugin { std::move(path), std::move(module), plugin_interface });
@@ -107,9 +106,9 @@ auto Inquisitor::loadPlugin(const std::filesystem::path &path) -> void {
 /////////////////////////////////////
 auto Inquisitor::initializeBot() -> void {
 #ifdef STORMKIT_BUILD_DEBUG
-    discordpp::log::filter = discordpp::log::trace;
+    discordpp::log::filter = discordpp::log::debug;
 #else
-    discordpp::log::filter = discordpp::log::trace;
+    discordpp::log::filter = discordpp::log::info;
 #endif
 
     discordpp::log::out = &std::cerr;
@@ -138,30 +137,94 @@ auto Inquisitor::initializeBot() -> void {
     for(const auto &plugin :m_plugins)
         plugins.emplace_back(plugin.interface);
 
+    const auto send_message = [this](std::string_view channel_id,
+                                     const json &msg) {
+        m_bot->call("POST",
+                    fmt::format("/channels/{}/messages", channel_id),
+                    msg,
+                    [channel_id](const bool error, [[maybe_unused]] const json msg) {
+                        if(error)
+                            elog("Failed to send message to channel {}, retrying", channel_id);
+                    });
+    };
+
+    const auto get_message = [this](std::string_view channel_id,
+                                    std::string_view message_id,
+                                    std::function<void(const json &)> on_response) {
+        m_bot->call("GET",
+                    fmt::format("/channels/{}/messages/{}", channel_id, message_id),
+                    [on_response = std::move(on_response), channel_id, message_id](const bool error, const json msg) {
+                        if(error) {
+                            elog("Failed to get message {} on channel {}, retrying", message_id, channel_id);
+                            return;
+                        }
+                        on_response(msg);
+                    });
+    };
+
+    const auto get_channel = [this](std::string_view channel_id,
+                                    std::function<void(const json &)> on_response) {
+        m_bot->call("GET",
+                    fmt::format("/channels/{}", channel_id),
+                    [on_response = std::move(on_response), channel_id](const bool error, const json msg) {
+                        if(error) {
+                            elog("Failed to get channel {}, retrying", channel_id);
+                            return;
+                        }
+
+                        on_response(msg);
+                    });
+
+    };
+
+    const auto get_all_message = [this](std::string_view channel_id, std::function<void(const json &)> on_response) {
+        //auto payload = json{
+        //    { "limit", 100 }
+        //};
+        //ilog("{}", payload.dump());
+        m_bot->call("GET",
+                    fmt::format("/channels/{}/messages", channel_id),
+                    //std::move(payload),
+                    [on_response = std::move(on_response), channel_id](const bool error, const json msg) {
+                        if(error) {
+                            elog("Failed to get all messages from channel {}", channel_id);
+                            return;
+                        }
+
+                        on_response(msg);
+                    });
+    };
+
+    const auto delete_message = [this](std::string_view channel_id, std::string_view message_id) {
+        m_bot->call("DELETE",
+                    fmt::format("/channels/{}/messages/{}", channel_id, message_id),
+                    [channel_id, message_id](const bool error, [[maybe_unused]] const json msg) {
+                        if(error)
+                            elog("Failed to get delete message {} from channel {}, retrying", message_id, channel_id);
+                    });
+    };
+
+    const auto delete_messages = [this](std::string_view channel_id, std::span<const std::string> message_ids) {
+        auto payload = json {
+            { "messages", message_ids }
+        };
+
+        m_bot->call("POST",
+                    fmt::format("/channels/{}/messages/bulk-delete", channel_id),
+                    std::move(payload),
+                    [channel_id](const bool error, [[maybe_unused]] const json msg) {
+                        if(error)
+                            elog("Failed to get delete all messages from channel {}, retrying", channel_id);
+                    });
+    };
+
     for(auto &plugin : m_plugins) {
-        plugin.interface->initialize(PluginInterface::Functions { [this](std::string channel_id,
-                                                                         const json &msg) {
-                                                                     m_bot->call("POST",
-                                                                                 fmt::format("/channels/{}/messages", channel_id),
-                                                                                 msg);
-                                                                 },
-                                                                  [this](std::string channel_id,
-                                                                         std::string message_id,
-                                                                         std::function<void(const json &)> on_response) {
-                                                                      m_bot->call("GET",
-                                                                                  fmt::format("/channels/{}/messages/{}", channel_id, message_id),
-                                                                                  [on_response](const bool error, const json msg) {
-                                                                                      on_response(msg);
-                                                                                  });
-                                                                  },
-                                                                  [this](std::string channel_id,
-                                                                         std::function<void(const json &)> on_response) {
-                                                                      m_bot->call("GET",
-                                                                                  fmt::format("/channels/{}", channel_id),
-                                                                                  [on_response](const bool error, const json msg) {
-                                                                                      on_response(msg);
-                                                                                  });
-                                                                      },
+        plugin.interface->initialize(PluginInterface::Functions {send_message,
+                                                                 get_message,
+                                                                 get_channel,
+                                                                 get_all_message,
+                                                                 delete_message,
+                                                                 delete_messages
         },m_plugin_options.at(std::string{plugin.interface->name()}), plugins);
 
         for(auto command : plugin.interface->commands()) {

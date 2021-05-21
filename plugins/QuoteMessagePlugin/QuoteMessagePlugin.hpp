@@ -13,7 +13,7 @@
 
 class QuoteMessagePlugin final: public PluginInterface {
   public:
-    QuoteMessagePlugin();
+    QuoteMessagePlugin() noexcept;
     ~QuoteMessagePlugin() override;
 
     [[nodiscard]] std::string_view name() const override;

@@ -19,6 +19,9 @@ auto PluginInterface::initialize(Functions &&functions,  const json &options, st
     sendMessage = std::move(functions.send_func);
     getMessage = std::move(functions.get_message_func);
     getChannel = std::move(functions.get_channel_func);
+    getAllMessage = std::move(functions.get_all_message_func);
+    deleteMessage = std::move(functions.delete_message);
+    deleteMessages = std::move(functions.delete_messages);
 
     m_others = std::move(others);
 

@@ -15,7 +15,7 @@
 
 class BasePlugin final: public PluginInterface {
   public:
-    BasePlugin();
+    BasePlugin() noexcept;
     ~BasePlugin() override;
 
     [[nodiscard]] std::string_view name() const override;
@@ -31,6 +31,7 @@ class BasePlugin final: public PluginInterface {
   private:
     void sendHelp(const json &msg);
     void sendPlugins(const json &msg);
+    void sendAbout(const json &msg);
 
     storm::core::UInt32 m_major_version;
     storm::core::UInt32 m_minor_version;
@@ -39,4 +40,5 @@ class BasePlugin final: public PluginInterface {
 
     std::string m_help_string;
     std::string m_plugins_string;
+    std::string m_about_string;
 };
