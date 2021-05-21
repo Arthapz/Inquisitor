@@ -7,6 +7,8 @@
 #include "Log.hpp"
 
 #include <ranges>
+#include <chrono>
+#include <charconv>
 
 INQUISITOR_PLUGIN(CleanChannelPlugin)
 
@@ -88,11 +90,24 @@ auto CleanChannelPlugin::cleanChannel(std::string channel) -> void {
         return message["id"].get<std::string>();
     };
 
+    static constexpr auto UNDER_14 = [](const json &message) {
+        auto now = std::chrono::high_resolution_clock::now();
+
+        auto timestamp = (std::chrono::time_point_cast<std::chrono::days>(now) - std::chrono::days{14}).time_since_epoch().count();
+
+        auto message_timestamp = storm::core::UInt32{};
+        auto message_timestamp_string = message["timestamp"].get<std::string>();
+
+        std::from_chars(std::data(message_timestamp_string), std::data(message_timestamp_string) + std::size(message_timestamp_string), message_timestamp);
+
+        return timestamp >= message_timestamp;
+    };
+
     getAllMessage(channel, [this, channel = channel](const json &msgs) {
         auto messages = std::vector<json>{};
         std::ranges::for_each(msgs["body"], [&messages](const auto &json) { messages.emplace_back(json); });
 
-        auto ids_view = messages | std::views::filter(NO_IMAGE) | std::views::transform(GET_MESSAGE_ID);
+        auto ids_view = messages | std::views::filter(UNDER_14) | std::views::filter(NO_IMAGE) | std::views::transform(GET_MESSAGE_ID);
         auto ids = std::vector<std::string>{std::ranges::begin(ids_view), std::ranges::end(ids_view)};
 
         if(std::empty(ids)) return;
