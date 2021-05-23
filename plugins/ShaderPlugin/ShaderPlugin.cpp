@@ -385,7 +385,6 @@ auto ShaderPlugin::render(std::span<const SpirvID> spirv) -> std::string {
     m_device->unmapVmaMemory(destination.vkAllocation());
 
     auto output = image.saveToMemory(storm::image::Image::Codec::JPEG);
-    image.saveToFile("./test.jpg", storm::image::Image::Codec::JPEG);
 
     auto output_str = std::string{};
     output_str.resize(std::size(output), '\0');
