@@ -43,7 +43,6 @@ class ShaderPlugin final: public PluginInterface {
     std::optional<std::string> compileShader(std::string_view glsl, std::vector<storm::render::SpirvID> &output);
 
     std::string render(std::span<const storm::render::SpirvID> spirv);
-    std::string toBase64(storm::core::ByteConstSpan data);
 
     storm::render::InstanceOwnedPtr m_instance;
     storm::render::OffscreenSurfaceOwnedPtr m_surface;
