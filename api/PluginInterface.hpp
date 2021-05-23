@@ -21,7 +21,8 @@ class PluginInterface {
   public:
     using json = nlohmann::json;
 
-    using SendFunction = std::function<void(std::string_view, const json &)>;
+    using SendMessageFunction = std::function<void(std::string_view, const json &)>;
+    using SendFileFunction = std::function<void(std::string_view, std::string, std::string, std::string, const json &)>;
     using GetMessageFunction = std::function<void(std::string_view, std::string_view, std::function<void(const json &)>)>;
     using GetChannelFunction = std::function<void(std::string_view, std::function<void(const json &)>)>;
     using GetAllMessageFunction = std::function<void(std::string_view, std::function<void(const json &)>)>;
@@ -29,7 +30,8 @@ class PluginInterface {
     using DeleteMessagesFunction = std::function<void(std::string_view, std::span<const std::string>)>;
 
     struct Functions {
-        SendFunction send_func;
+        SendMessageFunction send_message_func;
+        SendFileFunction send_file_func;
         GetMessageFunction get_message_func;
         GetChannelFunction get_channel_func;
         GetAllMessageFunction get_all_message_func;
@@ -53,7 +55,8 @@ class PluginInterface {
   protected:
     virtual void initialize(const json &options) {};
 
-    SendFunction sendMessage;
+    SendMessageFunction sendMessage;
+    SendFileFunction sendFile;
     GetMessageFunction getMessage;
     GetChannelFunction getChannel;
     GetAllMessageFunction getAllMessage;

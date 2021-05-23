@@ -1,1 +1,2 @@
-option('vcpkg_toolchain_file', type: 'string', value: 'notoolchain') 
+option('vcpkg_toolchain_file', type: 'string', value: 'notoolchain')
+option('shader_plugin', type: 'feature', value: 'enabled')

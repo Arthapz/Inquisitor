@@ -28,7 +28,7 @@ threads_dep           = dependency('threads')
 discordpp_opt = cmake.subproject_options()
 discordpp_opt.add_cmake_defines({'CMAKE_CXX_STANDARD': '17'})
 
-if get_option('vcpkg_toolchain_file') != 'novcpkg'
+if get_option('vcpkg_toolchain_file') != 'notoolchain'
     discordpp_opt.add_cmake_defines({'CMAKE_TOOLCHAIN_FILE': get_option('vcpkg_toolchain_file')})
 endif
 

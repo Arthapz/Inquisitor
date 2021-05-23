@@ -2,8 +2,6 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level of this distribution
 
-#define STORMKIT_BUILD_DEBUG
-
 /////////// - STL - ///////////
 #include <csignal>
 
@@ -141,41 +139,64 @@ auto Inquisitor::initializeBot() -> void {
 
     const auto send_message = [this](std::string_view channel_id,
                                      const json &msg) {
-        m_bot->call("POST",
-                    fmt::format("/channels/{}/messages", channel_id),
-                    msg,
-                    [channel_id](const bool error, [[maybe_unused]] const json msg) {
-                        if(error)
-                            elog("Failed to send message to channel {}, retrying", channel_id);
-                    });
+        m_bot->callJson()
+             ->method("POST")
+             ->target(fmt::format("/channels/{}/messages", channel_id))
+             ->payload(msg)
+             ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
+                             if(error)
+                                 elog("Failed to send message to channel {}", channel_id);
+                           })->run();
+    };
+
+    const auto send_file = [this](std::string_view channel_id,
+                                  std::string filename,
+                                  std::string filetype,
+                                  std::string file,
+                                  const json &msg) {
+        m_bot->callFile()
+             ->target(fmt::format("/channels/{}/messages", channel_id))
+             ->filename(std::move(filename))
+             ->filetype(std::move(filetype))
+             ->file(std::move(file))
+             ->payload(msg)
+             ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
+                             if(error)
+                                 elog("Failed to send file to channel {}", channel_id);
+                     })
+             ->run();
+
     };
 
     const auto get_message = [this](std::string_view channel_id,
                                     std::string_view message_id,
                                     std::function<void(const json &)> on_response) {
-        m_bot->call("GET",
-                    fmt::format("/channels/{}/messages/{}", channel_id, message_id),
+        m_bot->callJson()
+             ->method("GET")
+             ->target(fmt::format("/channels/{}/messages/{}", channel_id, message_id))
+             ->onRead(
                     [on_response = std::move(on_response), channel_id, message_id](const bool error, const json msg) {
                         if(error) {
                             elog("Failed to get message {} on channel {}, retrying", message_id, channel_id);
                             return;
                         }
                         on_response(msg);
-                    });
+                    })->run();
     };
 
     const auto get_channel = [this](std::string_view channel_id,
                                     std::function<void(const json &)> on_response) {
-        m_bot->call("GET",
-                    fmt::format("/channels/{}", channel_id),
-                    [on_response = std::move(on_response), channel_id](const bool error, const json msg) {
+        m_bot->callJson()
+             ->method("GET")
+             ->target(fmt::format("/channels/{}", channel_id))
+             ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
                         if(error) {
                             elog("Failed to get channel {}, retrying", channel_id);
                             return;
                         }
 
                         on_response(msg);
-                    });
+                     })->run();
 
     };
 
@@ -184,26 +205,27 @@ auto Inquisitor::initializeBot() -> void {
         //    { "limit", 100 }
         //};
         //ilog("{}", payload.dump());
-        m_bot->call("GET",
-                    fmt::format("/channels/{}/messages", channel_id),
-                    //std::move(payload),
-                    [on_response = std::move(on_response), channel_id](const bool error, const json msg) {
+        m_bot->callJson()
+             ->method("GET")
+             ->target(fmt::format("/channels/{}/messages", channel_id))
+             ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
                         if(error) {
                             elog("Failed to get all messages from channel {}", channel_id);
                             return;
                         }
 
                         on_response(msg);
-                    });
+                     })->run();
     };
 
     const auto delete_message = [this](std::string_view channel_id, std::string_view message_id) {
-        m_bot->call("DELETE",
-                    fmt::format("/channels/{}/messages/{}", channel_id, message_id),
-                    [channel_id, message_id](const bool error, [[maybe_unused]] const json msg) {
+        m_bot->callJson()
+             ->method("DELETE")
+             ->target(fmt::format("/channels/{}/messages/{}", channel_id, message_id))
+             ->onRead([channel_id, message_id](const bool error, [[maybe_unused]] const json msg) {
                         if(error)
                             elog("Failed to get delete message {} from channel {}, retrying", message_id, channel_id);
-                    });
+                      })->run();
     };
 
     const auto delete_messages = [this](std::string_view channel_id, std::span<const std::string> message_ids) {
@@ -211,17 +233,19 @@ auto Inquisitor::initializeBot() -> void {
             { "messages", message_ids }
         };
 
-        m_bot->call("POST",
-                    fmt::format("/channels/{}/messages/bulk-delete", channel_id),
-                    std::move(payload),
-                    [channel_id](const bool error, [[maybe_unused]] const json msg) {
+        m_bot->callJson()
+             ->method("POST")
+             ->target(fmt::format("/channels/{}/messages/bulk-delete", channel_id))
+             ->payload(std::move(payload))
+             ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
                         if(error)
                             elog("Failed to get delete all messages from channel {}, retrying", channel_id);
-                    });
+                      })->run();
     };
 
     for(auto &plugin : m_plugins) {
         plugin.interface->initialize(PluginInterface::Functions {send_message,
+                                                                 send_file,
                                                                  get_message,
                                                                  get_channel,
                                                                  get_all_message,
