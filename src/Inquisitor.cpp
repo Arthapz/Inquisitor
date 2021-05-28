@@ -9,6 +9,37 @@
 #include "Inquisitor.hpp"
 #include "Log.hpp"
 
+namespace beast = boost::beast;
+namespace ip = beast::net::ip;
+namespace http = beast::http;
+using tcp = ip::tcp;
+
+static auto urlEncode(std::string_view data) -> std::string {
+    auto result = std::string{};
+    result.reserve(std::size(data));
+
+    for(auto c : data) {
+        if(std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') result += c;
+        else {
+            result += '%';
+            result += fmt::format("{:0X}", c);
+        }
+    }
+
+    return result;
+}
+
+static auto curlWriteData(void *ptr, std::size_t size, std::size_t nmemb, void *user_data) -> std::size_t {
+    auto &data = *reinterpret_cast<std::string*>(user_data);
+
+    data.reserve(std::size(data) + size * nmemb);
+
+    auto c_data = std::span<const char>{reinterpret_cast<const char *>(ptr), nmemb};
+    std::ranges::copy(c_data, std::back_inserter(data));
+
+    return size * nmemb;
+}
+
 /////////////////////////////////////
 /////////////////////////////////////
 Inquisitor::Inquisitor() noexcept {
@@ -19,6 +50,7 @@ Inquisitor::Inquisitor() noexcept {
          STORMKIT_GIT_BRANCH,
          STORMKIT_GIT_COMMIT_HASH);
 
+    curl_global_init(CURL_GLOBAL_ALL);
     parseSettings();
     loadPlugins();
     initializeBot();
@@ -31,6 +63,8 @@ Inquisitor::~Inquisitor() {
         auto deallocate_func = plugin.module.getFunc<void(PluginInterface *)>("deallocatePlugin");
         deallocate_func(plugin.interface);
     }
+
+    curl_global_cleanup();
 }
 
 /////////////////////////////////////
@@ -105,6 +139,7 @@ auto Inquisitor::loadPlugin(const std::filesystem::path &path) -> void {
 /////////////////////////////////////
 /////////////////////////////////////
 auto Inquisitor::initializeBot() -> void {
+
 #ifdef STORMKIT_BUILD_DEBUG
     discordpp::log::filter = discordpp::log::debug;
 #else
@@ -113,8 +148,8 @@ auto Inquisitor::initializeBot() -> void {
 
     discordpp::log::out = &std::cerr;
 
-    m_asio_context = std::make_shared<boost::asio::io_context>();
 
+    m_asio_context = std::make_shared<boost::asio::io_context>();
     m_bot = std::make_shared<Bot>();
     m_bot->intents = discordpp::intents::GUILD_MESSAGES;
     m_bot->debugUnhandled = false;
@@ -140,13 +175,13 @@ auto Inquisitor::initializeBot() -> void {
     const auto send_message = [this](std::string_view channel_id,
                                      const json &msg) {
         m_bot->callJson()
-             ->method("POST")
-             ->target(fmt::format("/channels/{}/messages", channel_id))
-             ->payload(msg)
-             ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
-                             if(error)
-                                 elog("Failed to send message to channel {}", channel_id);
-                           })->run();
+            ->method("POST")
+            ->target(fmt::format("/channels/{}/messages", channel_id))
+            ->payload(msg)
+            ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
+                if(error)
+                    elog("Failed to send message to channel {}", channel_id);
+            })->run();
     };
 
     const auto send_file = [this](std::string_view channel_id,
@@ -155,16 +190,16 @@ auto Inquisitor::initializeBot() -> void {
                                   std::string file,
                                   const json &msg) {
         m_bot->callFile()
-             ->target(fmt::format("/channels/{}/messages", channel_id))
-             ->filename(std::move(filename))
-             ->filetype(std::move(filetype))
-             ->file(std::move(file))
-             ->payload(msg)
-             ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
-                             if(error)
-                                 elog("Failed to send file to channel {}", channel_id);
-                     })
-             ->run();
+            ->target(fmt::format("/channels/{}/messages", channel_id))
+            ->filename(std::move(filename))
+            ->filetype(std::move(filetype))
+            ->file(std::move(file))
+            ->payload(msg)
+            ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
+                if(error)
+                    elog("Failed to send file to channel {}", channel_id);
+            })
+            ->run();
 
     };
 
@@ -172,31 +207,31 @@ auto Inquisitor::initializeBot() -> void {
                                     std::string_view message_id,
                                     std::function<void(const json &)> on_response) {
         m_bot->callJson()
-             ->method("GET")
-             ->target(fmt::format("/channels/{}/messages/{}", channel_id, message_id))
-             ->onRead(
-                    [on_response = std::move(on_response), channel_id, message_id](const bool error, const json msg) {
-                        if(error) {
-                            elog("Failed to get message {} on channel {}, retrying", message_id, channel_id);
-                            return;
-                        }
-                        on_response(msg);
-                    })->run();
+            ->method("GET")
+            ->target(fmt::format("/channels/{}/messages/{}", channel_id, message_id))
+            ->onRead(
+                [on_response = std::move(on_response), channel_id, message_id](const bool error, const json msg) {
+                    if(error) {
+                        elog("Failed to get message {} on channel {}, retrying", message_id, channel_id);
+                        return;
+                    }
+                    on_response(msg);
+                })->run();
     };
 
     const auto get_channel = [this](std::string_view channel_id,
                                     std::function<void(const json &)> on_response) {
         m_bot->callJson()
-             ->method("GET")
-             ->target(fmt::format("/channels/{}", channel_id))
-             ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
-                        if(error) {
-                            elog("Failed to get channel {}, retrying", channel_id);
-                            return;
-                        }
+            ->method("GET")
+            ->target(fmt::format("/channels/{}", channel_id))
+            ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
+                if(error) {
+                    elog("Failed to get channel {}, retrying", channel_id);
+                    return;
+                }
 
-                        on_response(msg);
-                     })->run();
+                on_response(msg);
+            })->run();
 
     };
 
@@ -206,26 +241,29 @@ auto Inquisitor::initializeBot() -> void {
         //};
         //ilog("{}", payload.dump());
         m_bot->callJson()
-             ->method("GET")
-             ->target(fmt::format("/channels/{}/messages", channel_id))
-             ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
-                        if(error) {
-                            elog("Failed to get all messages from channel {}", channel_id);
-                            return;
-                        }
+            ->method("GET")
+            ->target(fmt::format("/channels/{}/messages", channel_id))
+            ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
+                if(error) {
+                    elog("Failed to get all messages from channel {}", channel_id);
+                    return;
+                }
 
-                        on_response(msg);
-                     })->run();
+                on_response(msg);
+            })->run();
     };
 
     const auto delete_message = [this](std::string_view channel_id, std::string_view message_id) {
+        auto payload = json{};
+
         m_bot->callJson()
-             ->method("DELETE")
-             ->target(fmt::format("/channels/{}/messages/{}", channel_id, message_id))
-             ->onRead([channel_id, message_id](const bool error, [[maybe_unused]] const json msg) {
-                        if(error)
-                            elog("Failed to get delete message {} from channel {}, retrying", message_id, channel_id);
-                      })->run();
+            ->method("DELETE")
+            ->target(fmt::format("/channels/{}/messages/{}", channel_id, message_id))
+            ->payload(std::move(payload))
+            ->onRead([channel_id, message_id](const bool error, [[maybe_unused]] const json msg) {
+                if(error)
+                    elog("Failed to get delete message {} from channel {}, retrying", message_id, channel_id);
+            })->run();
     };
 
     const auto delete_messages = [this](std::string_view channel_id, std::span<const std::string> message_ids) {
@@ -234,24 +272,57 @@ auto Inquisitor::initializeBot() -> void {
         };
 
         m_bot->callJson()
-             ->method("POST")
-             ->target(fmt::format("/channels/{}/messages/bulk-delete", channel_id))
-             ->payload(std::move(payload))
-             ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
-                        if(error)
-                            elog("Failed to get delete all messages from channel {}, retrying", channel_id);
-                      })->run();
+            ->method("POST")
+            ->target(fmt::format("/channels/{}/messages/bulk-delete", channel_id))
+            ->payload(std::move(payload))
+            ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
+                if(error)
+                    elog("Failed to get delete all messages from channel {}, retrying", channel_id);
+            })->run();
+    };
+
+    const auto add_reaction = [this](std::string_view channel_id, std::string_view message_id, std::string_view emoji) {
+        auto payload = json{};
+
+        m_bot->callJson()
+            ->method("PUT")
+            ->target(fmt::format("/channels/{}/messages/{}/reactions/{}/@me", channel_id, message_id, emoji))
+            ->payload(std::move(payload))
+            ->onRead([channel_id, message_id](const bool error, [[maybe_unused]] const json msg) {
+                if(error)
+                    elog("Failed to add reaction messages to message {} on channel {}, retrying", message_id, channel_id);
+            })->run();
+    };
+
+    const auto get_http_file = [](std::string_view url) {
+        auto curl = curl_easy_init();
+
+        auto data = std::string{};
+
+        curl_easy_setopt(curl, CURLOPT_URL, std::data(url));
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteData);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
+        curl_easy_perform(curl);
+
+        curl_easy_cleanup(curl);
+
+        ilog("Downloaded {} from {}", data, url);
+
+        return data;
     };
 
     for(auto &plugin : m_plugins) {
         plugin.interface->initialize(PluginInterface::Functions {send_message,
-                                                                 send_file,
-                                                                 get_message,
-                                                                 get_channel,
-                                                                 get_all_message,
-                                                                 delete_message,
-                                                                 delete_messages
-        },m_plugin_options.at(std::string{plugin.interface->name()}), plugins);
+                                         send_file,
+                                         get_message,
+                                         get_channel,
+                                         get_all_message,
+                                         delete_message,
+                                         delete_messages,
+                                         add_reaction,
+                                         get_http_file
+                                     },m_plugin_options.at(std::string{plugin.interface->name()}), plugins);
 
         for(auto command : plugin.interface->commands()) {
             m_bot->respond(std::string{command},

@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y cmake git meson unzip zip wget
 
 RUN git clone https://github.com/microsoft/vcpkg.git --depth 1
 RUN vcpkg/bootstrap-vcpkg.sh
-RUN vcpkg/vcpkg install glm gli fmt ms-gsl range-v3 nlohmann-json spirv-cross vulkan-headers
+RUN vcpkg/vcpkg install glm gli fmt ms-gsl range-v3 nlohmann-json spirv-cross vulkan-headers shaderc curl
 
 FROM gcc:latest as build
 

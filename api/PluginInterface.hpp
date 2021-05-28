@@ -28,6 +28,9 @@ class PluginInterface {
     using GetAllMessageFunction = std::function<void(std::string_view, std::function<void(const json &)>)>;
     using DeleteMessageFunction = std::function<void(std::string_view, std::string_view)>;
     using DeleteMessagesFunction = std::function<void(std::string_view, std::span<const std::string>)>;
+    using AddReactionFunction = std::function<void(std::string_view, std::string_view, std::string_view)>;
+
+    using GetHttpFile = std::function<std::string(std::string_view url)>;
 
     struct Functions {
         SendMessageFunction send_message_func;
@@ -35,8 +38,11 @@ class PluginInterface {
         GetMessageFunction get_message_func;
         GetChannelFunction get_channel_func;
         GetAllMessageFunction get_all_message_func;
-        DeleteMessageFunction delete_message;
-        DeleteMessagesFunction delete_messages;
+        DeleteMessageFunction delete_message_func;
+        DeleteMessagesFunction delete_messages_func;
+        AddReactionFunction add_reaction_func;
+
+        GetHttpFile get_http_file_func;
     };
 
     PluginInterface() noexcept;
@@ -62,6 +68,9 @@ class PluginInterface {
     GetAllMessageFunction getAllMessage;
     DeleteMessageFunction deleteMessage;
     DeleteMessagesFunction deleteMessages;
+    AddReactionFunction addReaction;
+
+    GetHttpFile getHttpFile;
 
     std::vector<const PluginInterface*> m_others;
 };

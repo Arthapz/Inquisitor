@@ -23,7 +23,8 @@ json_dep            = dependency('nlohmann_json')
 fmt_dep             = dependency('fmt')
 ssl_dep             = dependency('OpenSSL')
 boost_dep           = dependency('boost')
-threads_dep           = dependency('threads')
+threads_dep         = dependency('threads')
+curl_dep            = dependency('libcurl')
 
 discordpp_opt = cmake.subproject_options()
 discordpp_opt.add_cmake_defines({'CMAKE_CXX_STANDARD': '17'})
@@ -59,6 +60,7 @@ dependencies = [stormkit_core_dep,
                 discordpp_plugin_responder_dep,
                 fmt_dep,
                 ssl_dep,
+                curl_dep,
                 threads_dep]
 
 inquisitor_api_inc = include_directories(['api/'])

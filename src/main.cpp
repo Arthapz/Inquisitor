@@ -15,7 +15,7 @@ auto main(const int argc, const char **argv) -> int {
     try {
         auto inquisitor = Inquisitor {};
         inquisitor.run(argc, argv);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
         flog("Unhandled exception, {}", e.what());
         return EXIT_FAILURE;
     }

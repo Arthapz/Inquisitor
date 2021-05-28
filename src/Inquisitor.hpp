@@ -35,6 +35,9 @@ template class discordpp::PluginResponder<discordpp::PluginOverload<discordpp::P
 /////////// - Boost - ///////////
 #include <boost/asio.hpp>
 
+/////////// - curl - ///////////
+#include <curl/curl.h>
+
 /////////// - Inquisitor - ///////////
 #include "Fwd.hpp"
 
@@ -76,7 +79,6 @@ class Inquisitor final: public storm::core::App {
 
     std::vector<std::string> m_enabled_plugins;
     std::vector<Plugin> m_plugins;
-
 
     storm::core::HashMap<std::string, json> m_plugin_options;
 
