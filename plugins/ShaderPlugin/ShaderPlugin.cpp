@@ -8,6 +8,7 @@
 
 /////////// - STL - ///////////
 #include <iostream>
+#include <chrono>
 
 /////////// - StormKit::core - ///////////
 #include <storm/core/Strings.hpp>
@@ -32,14 +33,17 @@
 /////////// - ShaderC - ///////////
 #include <shaderc/shaderc.hpp>
 
-/////////// - WebP - ///////////
-#include <webp/encode.h>
+extern "C" {
+#include <libswscale/swscale.h>
+}
 
 INQUISITOR_PLUGIN(ShaderPlugin)
 
 using namespace std::literals;
 using namespace storm;
 using namespace storm::render;
+
+static constexpr auto VIDEO_FORMAT = "mp4";
 
 static constexpr auto VERTEX_SHADER = R"(
 #version 460 core
@@ -110,6 +114,56 @@ struct alignas(16) PushConstants {
     core::Vector2u resolution;
 };
 
+struct VideoPayload {
+    std::uint64_t pos = 0u;
+    core::ByteArray &output;
+};
+
+static auto readVideo(void *opaque, std::uint8_t* buf, int buf_size) -> int {
+    auto &payload = *reinterpret_cast<VideoPayload*>(opaque);
+    auto data = core::toByteSpan(buf, buf_size);
+
+    auto output = core::ByteConstSpan{std::ranges::cbegin(payload.output) + payload.pos, gsl::narrow_cast<std::size_t>(buf_size)};
+    std::ranges::copy(output, std::ranges::begin(data));
+
+    payload.pos += buf_size;
+
+    return buf_size;
+}
+
+static auto writeVideo(void *opaque, std::uint8_t *buf, int buf_size) -> int {
+    auto &payload = *reinterpret_cast<VideoPayload*>(opaque);
+    auto data = core::toConstByteSpan(buf, buf_size);
+
+    if(payload.pos + buf_size >= std::size(payload.output))
+        payload.output.resize(payload.pos + buf_size);
+
+    auto output = core::ByteSpan{std::ranges::begin(payload.output) + payload.pos, gsl::narrow_cast<std::size_t>(buf_size)};
+    std::ranges::copy(data, std::ranges::begin(output));
+
+    payload.pos += buf_size;
+
+    return buf_size;
+}
+
+static auto seekVideo(void *opaque, std::int64_t pos, int whence) -> std::int64_t {
+    auto &payload = *reinterpret_cast<VideoPayload*>(opaque);
+
+    if(whence == SEEK_SET)
+        payload.pos = pos;
+    else if(whence == SEEK_CUR)
+        payload.pos += pos;
+    else if(whence == SEEK_END)
+        payload.pos = std::size(payload.output) + pos;
+    else if(whence == AVSEEK_SIZE)
+        return std::size(payload.output);
+
+    if(payload.pos >= std::size(payload.output))
+       payload.output.resize(payload.pos);
+
+    return payload.pos;
+}
+
 /////////////////////////////////////
 /////////////////////////////////////
 ShaderPlugin::ShaderPlugin()
@@ -165,6 +219,10 @@ ShaderPlugin::ShaderPlugin()
         return core::Extentu{ capabilities.limits.max_viewport_dimensions[0], capabilities.limits.max_viewport_dimensions[1] };
     }();
     ilog("Success: {}", m_max_extent);
+
+    ilog("Initializing ffmpeg");
+    m_avformat_context.reset(avformat_alloc_context());
+
 }
 
 /////////////////////////////////////
@@ -197,14 +255,20 @@ auto ShaderPlugin::onCommand(std::string_view command, const json &msg) -> void 
 
     auto options = options_opt.value_or(json{});
     auto textures = std::vector<std::string>{};
-    auto frame_count = 1u;
+    auto fps = 30u;
+    auto duration = 0u;
     auto extent = core::Extentu{800, 600};
 
     if(options.contains("textures") && options["textures"].is_array())
         textures = options["textures"].get<std::vector<std::string>>();
 
-    if(options.contains("frame_count") && options["frame_count"].is_number_unsigned())
-        frame_count = std::max(1u, options["frame_count"].get<core::UInt32>());
+    if(options.contains("duration") && options["duration"].is_object()) {
+        if(options["duration"].contains("length") && options["duration"]["length"].is_number_unsigned())
+            duration = options["duration"]["length"].get<core::UInt32>();
+
+        if(options["duration"].contains("fps") && options["duration"]["fps"].is_number_unsigned())
+            fps = options["duration"]["fps"].get<core::UInt32>();
+    }
 
     if(options.contains("extent") && options["extent"].is_object()) {
        if(options["extent"].contains("width") && options["extent"]["width"].is_number_unsigned())
@@ -226,10 +290,11 @@ auto ShaderPlugin::onCommand(std::string_view command, const json &msg) -> void 
 
     const auto glsl = std::move(glsl_opt.value());
 
+    auto frame_count = (duration == 0u) ? 1 : fps * duration;
     if(frame_count == 1u)
         singleFrame(textures, channel_id, glsl, extent);
     else
-        multipleFrame(textures, frame_count, channel_id, glsl, extent);
+        multipleFrame(textures, frame_count, fps, channel_id, glsl, extent);
 }
 
 /////////////////////////////////////
@@ -324,7 +389,7 @@ auto ShaderPlugin::compileShader(std::string_view glsl, std::vector<SpirvID> &ou
     return std::nullopt;
 }
 
-auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_view channel_id, std::string_view glsl, core::Extentu extent) -> void {
+auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_view channel_id, std::string_view glsl, const core::Extentu &extent) -> void {
     auto spirv = std::vector<SpirvID>{};
 
     auto content = std::string{};
@@ -349,44 +414,164 @@ auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_vi
     auto opt_string = fmt::format("Options: \n```textures:\n{}\nframe_count: {}\nextent:\n    width: {},\n    height: {}```", textures_str, 1u, extent.width, extent.height);
     content = fmt::format(":white_check_mark: Compilation success! :white_check_mark:\n{}", opt_string);
 
-    if(m_is_currently_rendering) {
-        auto response = json {
-            {"content", "Waiting for an other rendering request"}
-        };
+    auto textures_ = std::vector<image::Image>{};
+    textures_.reserve(std::size(textures));
+    for(const auto &texture : textures) {
+        auto file = getHttpFile(texture);
 
-        sendMessage(channel_id, std::move(response));
+        auto data = core::toConstByteSpan(file);
 
-        while(m_is_currently_rendering) {}
+        if(std::empty(texture)) {
+            content += fmt::format("Failed to get image file {}\n", texture);
+            continue;
+        }
+
+        auto image = image::Image{};
+        auto loaded = image.loadFromMemory(data);
+
+        if(!loaded)
+            content += fmt::format("Failed to load image file {}, codec not supported or maybe not an image\n", texture);
+
+        textures_.emplace_back(std::move(image));
     }
-    m_is_currently_rendering = true;
 
-    auto result_var = render(spirv, textures, extent);
+    auto result_var = render(spirv, textures_, extent, 0, 0.f);
 
-    m_is_currently_rendering = false;
-
-    auto result = std::string{};
+    auto result = core::ByteArray{};
+    auto row_pitch = 0u;
     if(std::holds_alternative<ErrorString>(result_var)) {
         content += fmt::format("\n:warning: Rendering failed! :warning:\n **reason:** {}", std::get<ErrorString>(result_var).get());
     } else {
         content += "\n:white_check_mark: Rendering success! :white_check_mark:";
 
-        result = std::move(std::get<std::string>(result_var));
+        auto pair = std::get<std::pair<core::ByteArray, core::UInt32>>(result_var);
+
+        result = std::move(pair.first);
+        row_pitch = pair.second;
     }
+
+    auto data_span = core::ByteSpan{result};
+
+    auto image = image::Image{};
+    image.create(extent, image::Image::Format::RGBA8_UNorm);
+
+    for(auto i = 0u; i < extent.height; ++i) {
+        auto data = data_span.subspan(i * row_pitch, extent.width * 4u);
+
+        std::ranges::copy(data, std::begin(image.data()) + i * extent.width * 4u);
+    }
+    auto output = image.saveToMemory(image::Image::Codec::PNG);
 
     auto response = json {
         {"content", std::move(content)}
     };
 
-    sendFile(channel_id, "result.png", "image/png", std::move(result), response);
+    auto output_str = std::string{};
+    output_str.resize(std::size(result), '\0');
+
+    std::ranges::transform(output, std::begin(output_str), [](auto byte) { return static_cast<char>(byte);});
+
+    sendFile(channel_id, "result.png", "image/png", std::move(output_str), response);
 }
 
-auto ShaderPlugin::multipleFrame(std::vector<std::string> textures, storm::core::UInt32 frame_count, std::string_view channel_id, std::string_view glsl, core::Extentu extent) -> void {
+auto ShaderPlugin::multipleFrame(std::vector<std::string> textures, core::UInt32 frame_count, core::UInt32 fps, std::string_view channel_id, std::string_view glsl, const core::Extentu &extent) -> void {
+    auto spirv = std::vector<SpirvID>{};
 
+    auto content = std::string{};
+
+    auto error = compileShader(glsl, spirv, std::size(textures));
+    if(error) {
+        content = fmt::format(":warning: Compilation failed! :warning:\n\n**reason:**\n```\n{}\n```\n", error.value().first);
+
+        ilog("{}", content);
+
+        auto response = json {
+            {"content", std::move(content)}
+        };
+
+        sendFile(channel_id, "shader.glsl", "text/glsl", error.value().second, std::move(response));
+        return;
+    }
+    ilog("Compiling done!");
+
+    auto textures_str = std::string{};
+    auto i = 0u;
+    for(const auto &texture : textures)
+        textures_str += fmt::format("    textures[{}] = {},\n", i++, texture);
+
+    auto opt_string = fmt::format("Options: \n```textures:\n{}\nfps: {}\nframe_count: {}\nextent:\n    width: {},\n    height: {}```", textures_str, fps, frame_count, extent.width, extent.height);
+    content = fmt::format(":white_check_mark: Compilation success! :white_check_mark:\n{}", opt_string);
+
+    auto textures_ = std::vector<image::Image>{};
+    textures_.reserve(std::size(textures));
+    for(const auto &texture : textures) {
+        auto file = getHttpFile(texture);
+
+        auto data = core::toConstByteSpan(file);
+
+        if(std::empty(texture)) {
+            content += fmt::format("Failed to get image file {}\n", texture);
+            continue;
+        }
+
+        auto image = image::Image{};
+        auto loaded = image.loadFromMemory(data);
+
+        if(!loaded)
+            content += fmt::format("Failed to load image file {}, codec not supported or maybe not an image\n", texture);
+
+        textures_.emplace_back(std::move(image));
+    }
+    auto images = std::vector<std::pair<core::ByteArray, core::UInt32>>{};
+
+    namespace chrono = std::chrono;
+    using Clock = chrono::high_resolution_clock;
+
+    auto time = 0.f;
+    auto render_error = false;
+    for(auto i = 0u;i < frame_count && !render_error; ++i) {
+        auto result_var = render(spirv, textures_, extent, i, time);
+
+        if(std::holds_alternative<ErrorString>(result_var)) {
+            content += fmt::format("\n:warning: Rendering failed at frame {} ! :warning:\n **reason:** {}", i, std::get<ErrorString>(result_var).get());
+            render_error = true;
+        } else {
+            images.emplace_back(std::move(std::get<std::pair<core::ByteArray, core::UInt32>>(result_var)));
+        }
+
+        time += 1.f / static_cast<float>(fps);
+    }
+    ilog("Rendering done!");
+
+    if(!render_error)
+        content += "\n:white_check_mark: Rendering success! :white_check_mark:";
+
+    auto result_var = encode(images, extent, fps);
+    auto result = core::ByteArray{};
+    if(std::holds_alternative<ErrorString>(result_var)) {
+        content += fmt::format("\n:warning: Encoding failed ! :warning:\n **reason:** {}", std::get<ErrorString>(result_var).get());
+    } else {
+        content += "\n:white_check_mark: Encoding success! :white_check_mark:";
+
+        result = std::move(std::get<core::ByteArray>(result_var));
+    }
+    ilog("Encoding done!");
+
+    auto response = json {
+        {"content", std::move(content)}
+    };
+
+    auto output_str = std::string{};
+    output_str.resize(std::size(result), '\0');
+
+    std::ranges::transform(result, std::begin(output_str), [](auto byte) { return static_cast<char>(byte);});
+
+    sendFile(channel_id, fmt::format("result.{}", VIDEO_FORMAT), fmt::format("video/{}", VIDEO_FORMAT), std::move(output_str), response);
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto ShaderPlugin::render(std::span<const SpirvID> spirv, std::span<const std::string> textures, core::Extentu extent) -> std::variant<std::string, ErrorString> {
+auto ShaderPlugin::render(std::span<const SpirvID> spirv, std::span<const image::Image> textures, core::Extentu extent, core::UInt32 frame, float time) -> std::variant<std::pair<core::ByteArray, core::UInt32>, ErrorString> {
     auto render_image =
         m_device->createTexture(extent,
                                 PixelFormat::RGBA8_UNorm,
@@ -456,21 +641,8 @@ auto ShaderPlugin::render(std::span<const SpirvID> spirv, std::span<const std::s
 
         auto i = 0u;
         for(const auto &texture : textures) {
-            auto file = getHttpFile(texture);
-
-            auto data = core::toConstByteSpan(file);
-
-            if(std::empty(data))
-                return ErrorString{fmt::format("Failed to get image file {}", texture)};
-
-            auto image = image::Image{};
-            auto loaded = image.loadFromMemory(data);
-
-            if(!loaded)
-                return ErrorString{fmt::format("Failed to load image file {}, codec not supported or maybe not an image", texture)};
-
-            auto &gpu_texture = gpu_textures.emplace_back(m_device->createTexturePtr(image.extent()));
-            gpu_texture->loadFromImage(image.toFormat(image::Image::Format::RGBA8_UNorm));
+            auto &gpu_texture = gpu_textures.emplace_back(m_device->createTexturePtr(texture.extent()));
+            gpu_texture->loadFromImage(texture.toFormat(image::Image::Format::RGBA8_UNorm));
 
             auto &view = gpu_texture_views.emplace_back(gpu_texture->createViewPtr());
 
@@ -500,8 +672,8 @@ auto ShaderPlugin::render(std::span<const SpirvID> spirv, std::span<const std::s
     pipeline.build();
 
     auto push_constants = PushConstants {
-        .time = 0.f,
-        .frame = 1,
+        .time = time,
+        .frame = frame,
         .resolution = core::Vector2u{extent.width, extent.height}
     };
 
@@ -589,26 +761,158 @@ auto ShaderPlugin::render(std::span<const SpirvID> spirv, std::span<const std::s
     auto subresource = vk::ImageSubresource{ vk::ImageAspectFlagBits::eColor, 0, 0 };
     auto subresource_layout = m_device->vkDevice().getImageSubresourceLayout(destination, subresource, m_device->vkDispatcher());
 
-    auto data_span = core::ByteConstSpan(data + subresource_layout.offset, extent.width * extent.height * 4u);
+    auto data_span = core::ByteConstSpan(data + subresource_layout.offset, subresource_layout.size - subresource_layout.offset);
+    auto output = core::ByteArray{std::size(data_span)};
 
-    auto image = image::Image{};
-    image.create(extent, image::Image::Format::RGBA8_UNorm);
-
-    for(auto i = 0u; i < extent.height; ++i) {
-        auto data = data_span.subspan(i * subresource_layout.rowPitch, extent.width * 4u);
-
-        std::ranges::copy(data, std::begin(image.data()) + i * extent.width * 4u);
-    }
+    std::ranges::copy(data_span, std::ranges::begin(output));
 
     m_device->unmapVmaMemory(destination.vkAllocation());
 
-    image.saveToFile("./test.png", image::Image::Codec::PNG);
-    auto output = image.saveToMemory(image::Image::Codec::PNG);
+    return std::pair{output, subresource_layout.rowPitch};
+}
 
-    auto output_str = std::string{};
-    output_str.resize(std::size(output), '\0');
+auto ShaderPlugin::encode(std::span<std::pair<core::ByteArray, core::UInt32>> data, const core::Extentu &extent, core::UInt32 fps) -> std::variant<core::ByteArray, ShaderPlugin::ErrorString> {
+    auto output = core::ByteArray{};
 
-    std::ranges::transform(output, std::begin(output_str), [](auto byte) { return static_cast<char>(byte);});
+    auto codec = avcodec_find_encoder(AV_CODEC_ID_VP9);
+    if(!codec)
+        return ErrorString{"Failed to get vp9 codec"};
 
-    return output_str;
+    auto context = AVCodecContextScoped{avcodec_alloc_context3(codec)};
+    if(!context)
+        return ErrorString{"Failed to ffmpeg context"};
+
+    auto packet = av_packet_alloc();
+    if(!packet)
+        return ErrorString{"Failed to allocate packet"};
+
+    context->bit_rate = 4800000;
+    context->width = extent.width;
+    context->height = extent.height;
+    context->time_base = {1, gsl::narrow_cast<core::Int32>(fps)};
+    context->framerate = {gsl::narrow_cast<core::Int32>(fps), 1};
+    context->gop_size  = fps;
+    context->max_b_frames = 1;
+    context->pix_fmt = AV_PIX_FMT_YUV420P;
+    context->thread_count = 8;
+
+    if(avcodec_open2(context.get(), codec, nullptr) < 0)
+        return ErrorString{"Failed to initialize vp9 codec"};
+
+    auto frame = av_frame_alloc();
+    frame->format = context->pix_fmt;
+    frame->width  = context->width;
+    frame->height = context->height;
+
+    if(av_frame_get_buffer(frame, 0) < 0)
+        return ErrorString{"Failed to allocate yuva420 ffmpeg pixel buffer"};
+
+    auto convert_context = sws_getContext(extent.width, extent.height, AV_PIX_FMT_RGBA, extent.width, extent.height, context->pix_fmt, 0, nullptr, nullptr, nullptr);
+    if(!convert_context)
+        return ErrorString{"Failed to creater swscale context"};
+
+    auto format_context = avformat_alloc_context();
+    if(avformat_alloc_output_context2(&format_context, nullptr, VIDEO_FORMAT, nullptr) != 0)
+        return ErrorString{"Failed to allocate output context"};
+
+    auto muxer_stream = avformat_new_stream(format_context, nullptr);
+    muxer_stream->id = format_context->nb_streams - 1;
+    muxer_stream->time_base = context->time_base;
+    muxer_stream->avg_frame_rate = context->framerate;
+
+    if(format_context->oformat->flags & AVFMT_GLOBALHEADER)
+        context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+
+    auto avio_internal_buffer = core::ByteArray{32 * 1024};
+
+    if(avcodec_parameters_from_context(muxer_stream->codecpar, context.get()) != 0)
+        return ErrorString{"Failed to get codec parameters from codec context"};
+
+    auto video_payload = VideoPayload {
+        .output = output
+    };
+
+    auto io_context = avio_alloc_context(reinterpret_cast<unsigned char *>(std::data(avio_internal_buffer)),
+                                         std::size(avio_internal_buffer),
+                                         1,
+                                         &video_payload,
+                                         readVideo,
+                                         writeVideo,
+                                         seekVideo);
+
+    format_context->video_codec_id = codec->id;
+    format_context->video_codec = codec;
+    format_context->pb = io_context;
+    format_context->flags |= AVFMT_FLAG_CUSTOM_IO;
+
+    if(avformat_write_header(format_context, nullptr) != 0)
+        return ErrorString{"Failed to write webm header"};
+
+    auto encoded_frame = 0u;
+    for(auto &image : data) {
+        if(av_frame_make_writable(frame) < 0)
+            return ErrorString{"Failed to make ffmpeg yuva420p pixel buffer writable"};
+        auto in_data = std::array<std::uint8_t*, 8>{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+        in_data[0] = reinterpret_cast<std::uint8_t*>(std::data(image.first));
+
+        auto in_line_size = std::array<int, 8>{ static_cast<int>(image.second), 0, 0, 0, 0, 0, 0, 0 };
+
+        sws_scale(convert_context,
+                  std::data(in_data),
+                  std::data(in_line_size),
+                  0,
+                  extent.height,
+                  frame->data,
+                  frame->linesize);
+
+        frame->pts = encoded_frame;
+
+        if(avcodec_send_frame(context.get(), frame) != 0)
+            return ErrorString{fmt::format("Failed to encode frame {}", encoded_frame)};
+
+        auto ret = 0;
+        while(ret >= 0) {
+            ret = avcodec_receive_packet(context.get(), packet);
+
+            if(ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+                break;
+
+            av_packet_rescale_ts(packet, context->time_base, muxer_stream->time_base);
+
+            packet->stream_index = muxer_stream->index;
+
+            av_interleaved_write_frame(format_context, packet);
+
+            av_packet_unref(packet);
+        }
+
+        ++encoded_frame;
+    }
+
+    if(avcodec_send_frame(context.get(), nullptr) != 0)
+        return ErrorString{"Failed to flush video stream"};
+
+    auto ret = 0;
+    while(ret >= 0) {
+        ret = avcodec_receive_packet(context.get(), packet);
+
+        if(ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+            break;
+
+        av_packet_rescale_ts(packet, context->time_base, muxer_stream->time_base);
+
+        packet->stream_index = muxer_stream->index;
+
+        av_interleaved_write_frame(format_context, packet);
+
+        av_packet_unref(packet);
+    }
+    av_write_trailer(format_context);
+
+    av_frame_free(&frame);
+    av_packet_free(&packet);
+
+    avcodec_close(context.get());
+
+    return output;
 }

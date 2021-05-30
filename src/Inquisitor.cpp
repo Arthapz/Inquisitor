@@ -302,12 +302,11 @@ auto Inquisitor::initializeBot() -> void {
         curl_easy_setopt(curl, CURLOPT_URL, std::data(url));
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteData);
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
         curl_easy_perform(curl);
 
         curl_easy_cleanup(curl);
-
-        ilog("Downloaded {} from {}", data, url);
 
         return data;
     };
