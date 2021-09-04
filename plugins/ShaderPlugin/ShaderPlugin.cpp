@@ -422,6 +422,7 @@ auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_vi
     for(const auto &texture : textures) {
         ilog("Downloading texture {}", texture);
         auto file = getHttpFile(texture);
+        dlog("file downloaded");
 
         auto data = core::toConstByteSpan(file);
 
@@ -430,8 +431,10 @@ auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_vi
             continue;
         }
 
+        dlog("decoding image");
         auto image = image::Image{};
         auto loaded = image.loadFromMemory(data);
+        dlog("image decoded");
 
         if(!loaded)
             content += fmt::format("Failed to load image file {}, codec not supported or maybe not an image\n", texture);
