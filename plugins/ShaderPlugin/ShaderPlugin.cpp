@@ -394,6 +394,7 @@ auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_vi
 
     auto content = std::string{};
 
+    ilog("Compiling Fragment Shader --------------------");
     auto error = compileShader(glsl, spirv, std::size(textures));
     if(error) {
         content = fmt::format(":warning: Compilation failed! :warning:\n\n**reason:**\n```\n{}\n```\n", error.value().first);
@@ -405,7 +406,9 @@ auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_vi
         sendFile(channel_id, "shader.glsl", "text/glsl", error.value().second, std::move(response));
         return;
     }
+    ilog("Compiling done! --------------------");
 
+    ilog("Download textures --------------------");
     auto textures_str = std::string{};
     auto i = 0u;
     for(const auto &texture : textures)
@@ -417,6 +420,7 @@ auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_vi
     auto textures_ = std::vector<image::Image>{};
     textures_.reserve(std::size(textures));
     for(const auto &texture : textures) {
+        ilog("Downloading texture {}", texture);
         auto file = getHttpFile(texture);
 
         auto data = core::toConstByteSpan(file);
@@ -433,6 +437,7 @@ auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_vi
             content += fmt::format("Failed to load image file {}, codec not supported or maybe not an image\n", texture);
 
         textures_.emplace_back(std::move(image));
+        ilog("Downloading texture {} done!", texture);
     }
 
     auto result_var = render(spirv, textures_, extent, 0, 0.f);
@@ -451,7 +456,9 @@ auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_vi
     }
 
     auto data_span = core::ByteSpan{result};
+    ilog("Download textures done! --------------------");
 
+    ilog("Encoding --------------------");
     auto image = image::Image{};
     image.create(extent, image::Image::Format::RGBA8_UNorm);
 
@@ -470,6 +477,7 @@ auto ShaderPlugin::singleFrame(std::vector<std::string> textures, std::string_vi
     output_str.resize(std::size(result), '\0');
 
     std::ranges::transform(output, std::begin(output_str), [](auto byte) { return static_cast<char>(byte);});
+    ilog("Encoding done! --------------------");
 
     sendFile(channel_id, "result.png", "image/png", std::move(output_str), response);
 }
@@ -479,6 +487,7 @@ auto ShaderPlugin::multipleFrame(std::vector<std::string> textures, core::UInt32
 
     auto content = std::string{};
 
+    ilog("Compiling Fragment Shader --------------------");
     auto error = compileShader(glsl, spirv, std::size(textures));
     if(error) {
         content = fmt::format(":warning: Compilation failed! :warning:\n\n**reason:**\n```\n{}\n```\n", error.value().first);
@@ -494,6 +503,7 @@ auto ShaderPlugin::multipleFrame(std::vector<std::string> textures, core::UInt32
     }
     ilog("Compiling done!");
 
+    ilog("Download textures --------------------");
     auto textures_str = std::string{};
     auto i = 0u;
     for(const auto &texture : textures)
@@ -505,6 +515,7 @@ auto ShaderPlugin::multipleFrame(std::vector<std::string> textures, core::UInt32
     auto textures_ = std::vector<image::Image>{};
     textures_.reserve(std::size(textures));
     for(const auto &texture : textures) {
+        ilog("Downloading texture {}", texture);
         auto file = getHttpFile(texture);
 
         auto data = core::toConstByteSpan(file);
@@ -521,12 +532,16 @@ auto ShaderPlugin::multipleFrame(std::vector<std::string> textures, core::UInt32
             content += fmt::format("Failed to load image file {}, codec not supported or maybe not an image\n", texture);
 
         textures_.emplace_back(std::move(image));
+        ilog("Downloading texture {} done!", texture);
     }
+    ilog("Download textures done! --------------------");
+
     auto images = std::vector<std::pair<core::ByteArray, core::UInt32>>{};
 
     namespace chrono = std::chrono;
     using Clock = chrono::high_resolution_clock;
 
+    ilog("Rendering --------------------");
     auto time = 0.f;
     auto render_error = false;
     for(auto i = 0u;i < frame_count && !render_error; ++i) {
@@ -541,11 +556,12 @@ auto ShaderPlugin::multipleFrame(std::vector<std::string> textures, core::UInt32
 
         time += 1.f / static_cast<float>(fps);
     }
-    ilog("Rendering done!");
+    ilog("Rendering done! --------------------");
 
     if(!render_error)
         content += "\n:white_check_mark: Rendering success! :white_check_mark:";
 
+    ilog("Encoding --------------------");
     auto result_var = encode(images, extent, fps);
     auto result = core::ByteArray{};
     if(std::holds_alternative<ErrorString>(result_var)) {
@@ -555,7 +571,7 @@ auto ShaderPlugin::multipleFrame(std::vector<std::string> textures, core::UInt32
 
         result = std::move(std::get<core::ByteArray>(result_var));
     }
-    ilog("Encoding done!");
+    ilog("Encoding done! --------------------");
 
     auto response = json {
         {"content", std::move(content)}
@@ -786,7 +802,7 @@ auto ShaderPlugin::encode(std::span<std::pair<core::ByteArray, core::UInt32>> da
     if(!packet)
         return ErrorString{"Failed to allocate packet"};
 
-    context->bit_rate = 4800000;
+    context->bit_rate = 1200000;
     context->width = extent.width;
     context->height = extent.height;
     context->time_base = {1, gsl::narrow_cast<core::Int32>(fps)};
