@@ -151,7 +151,7 @@ auto Inquisitor::initializeBot() -> void {
 
     m_asio_context = std::make_shared<boost::asio::io_context>();
     m_bot = std::make_shared<Bot>();
-    m_bot->intents = discordpp::intents::GUILD_MESSAGES;
+    m_bot->intents = discordpp::intents::GUILD_MESSAGES | discordpp::intents::DIRECT_MESSAGE_REACTIONS | discordpp::intents::GUILDS;
     m_bot->debugUnhandled = false;
     m_bot->prefix = ";inquisitor ";
 
@@ -190,6 +190,7 @@ auto Inquisitor::initializeBot() -> void {
                                   std::string file,
                                   const json &msg) {
         m_bot->callFile()
+            ->method("POST")
             ->target(fmt::format("/channels/{}/messages", channel_id))
             ->filename(std::move(filename))
             ->filetype(std::move(filetype))
@@ -206,7 +207,7 @@ auto Inquisitor::initializeBot() -> void {
     const auto get_message = [this](std::string_view channel_id,
                                     std::string_view message_id,
                                     std::function<void(const json &)> on_response) {
-        m_bot->callJson()
+        m_bot->call()
             ->method("GET")
             ->target(fmt::format("/channels/{}/messages/{}", channel_id, message_id))
             ->onRead(
@@ -221,7 +222,7 @@ auto Inquisitor::initializeBot() -> void {
 
     const auto get_channel = [this](std::string_view channel_id,
                                     std::function<void(const json &)> on_response) {
-        m_bot->callJson()
+        m_bot->call()
             ->method("GET")
             ->target(fmt::format("/channels/{}", channel_id))
             ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
@@ -236,6 +237,7 @@ auto Inquisitor::initializeBot() -> void {
     };
 
     const auto get_all_message = [this](std::string_view channel_id, std::function<void(const json &)> on_response) {
+        auto payload = json{};
         //auto payload = json{
         //    { "limit", 100 }
         //};
@@ -243,6 +245,7 @@ auto Inquisitor::initializeBot() -> void {
         m_bot->callJson()
             ->method("GET")
             ->target(fmt::format("/channels/{}/messages", channel_id))
+            ->payload(std::move(payload))
             ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
                 if(error) {
                     elog("Failed to get all messages from channel {}", channel_id);

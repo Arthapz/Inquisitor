@@ -6,6 +6,7 @@ project(
     default_options: ['cpp_std=c++2a',
                       'stormkit:enable_entities=false',
                       'stormkit:enable_engine=false',
+                      'stormkit:enable_render=true',
                       'stormkit:enable_window=false',
                       'stormkit:enable_window_xcb=false',
                       'stormkit:enable_window_wayland=false',
@@ -17,7 +18,9 @@ cmake = import('cmake')
 
 stormkit_core_dep   = dependency('stormkit_core')
 stormkit_log_dep    = dependency('stormkit_log')
-stormkit_render_dep = dependency('stormkit_render')
+if get_option('shader_plugin').enabled()
+    stormkit_render_dep = dependency('stormkit_render')
+endif
 stormkit_module_dep = dependency('stormkit_module')
 json_dep            = dependency('nlohmann_json')
 fmt_dep             = dependency('fmt')
@@ -49,7 +52,6 @@ discordpp_plugin_responder_dep = discordpp_plugin_responder_proj.dependency('dis
 
 dependencies = [stormkit_core_dep,
                 stormkit_log_dep,
-                stormkit_render_dep,
                 stormkit_module_dep,
                 json_dep,
                 discordpp_dep,
@@ -62,6 +64,10 @@ dependencies = [stormkit_core_dep,
                 ssl_dep,
                 curl_dep,
                 threads_dep]
+
+if get_option('shader_plugin').enabled()
+    dependencies += [stormkit_render_dep]
+endif
 
 inquisitor_api_inc = include_directories(['api/'])
 
