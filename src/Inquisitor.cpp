@@ -237,15 +237,9 @@ auto Inquisitor::initializeBot() -> void {
     };
 
     const auto get_all_message = [this](std::string_view channel_id, std::function<void(const json &)> on_response) {
-        auto payload = json{};
-        //auto payload = json{
-        //    { "limit", 100 }
-        //};
-        //ilog("{}", payload.dump());
-        m_bot->callJson()
+        m_bot->call()
             ->method("GET")
             ->target(fmt::format("/channels/{}/messages", channel_id))
-            ->payload(std::move(payload))
             ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
                 if(error) {
                     elog("Failed to get all messages from channel {}", channel_id);
