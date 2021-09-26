@@ -19,6 +19,7 @@
 #include <storm/module/Module.hpp>
 
 /////////// - D++ - ///////////
+#include <dpp/dpp.h>
 
 /////////// - nlohmann-json - ///////////
 #include <nlohmann/json.hpp>
@@ -70,6 +71,8 @@ class Inquisitor final: public storm::core::App {
     std::vector<Plugin> m_plugins;
 
     storm::core::HashMap<std::string, json> m_plugin_options;
+
+    std::unique_ptr<dpp::cluster> m_bot;
 };
 
 #pragma pop_macro("interface")

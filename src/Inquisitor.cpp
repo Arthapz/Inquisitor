@@ -16,7 +16,7 @@
 using namespace std::literals;
 
 static constexpr auto ASCII_ART_LOGO =
-     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "\nmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
      "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
      "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmhyhhhhhhhyhmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
      "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+dmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
@@ -83,10 +83,16 @@ Inquisitor::Inquisitor() noexcept {
          STORMKIT_GIT_BRANCH,
          STORMKIT_GIT_COMMIT_HASH);
 
-    curl_global_init(CURL_GLOBAL_ALL);
+    //curl_global_init(CURL_GLOBAL_ALL);
     parseSettings();
-    loadPlugins();
-    initializeBot();
+
+    m_bot = std::make_unique<dpp::cluster>(m_token);
+
+    m_bot->on_ready([this](const auto &event) {
+        ilog("{} logged as", m_bot->me.username);
+        loadPlugins();
+        initializeBot();
+    });
 }
 
 /////////////////////////////////////
@@ -97,12 +103,13 @@ Inquisitor::~Inquisitor() {
         deallocate_func(plugin.interface);
     }
 
-    curl_global_cleanup();
+    //curl_global_cleanup();
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
 auto Inquisitor::run([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) -> void {
+    m_bot->start(false);
 }
 
 /////////////////////////////////////

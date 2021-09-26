@@ -15,9 +15,10 @@ project(
 )
 
 compiler = meson.get_compiler('cpp')
+build_type = get_option('buildtype')
 
 if compiler.get_argument_syntax() == 'msvc'
-    add_project_arguments(['/std:c++latest', '/permissive-', '/DNOMINMAX'], language: ['cpp'])
+    add_project_arguments(['/std:c++latest', '/permissive-', '/DNOMINMAX', '/DWIN32_LEAN_AND_MEAN'], language: ['cpp'])
 else
     add_project_arguments(['-std=c++20'], language: ['cpp'])
 endif
@@ -35,8 +36,24 @@ json_dep            = dependency('nlohmann_json')
 fmt_dep             = dependency('fmt')
 if compiler.get_argument_syntax() == 'msvc'
 curl_dep            = dependency('CURL', method: 'cmake', modules: ['CURL::libcurl'])
+dpp_dep = dependency('dpp')
 else
 curl_dep            = dependency('curl')
+dpp_vars = cmake.subproject_options()
+dpp_vars.add_cmake_defines({'CMAKE_CXX_STANDARD': '20'})
+dpp_vars.add_cmake_defines({'BUILD_SHARED_LIBS:BOOL': false})
+if build_type == 'debug' or build_type == 'debugoptimized'
+    dpp_vars.add_cmake_defines({'CMAKE_BUILD_TYPE': 'Debug'})
+else
+    dpp_vars.add_cmake_defines({'CMAKE_BUILD_TYPE': 'Release'})
+endif
+
+if get_option('vcpkg_toolchain_file') != 'notoolchain'
+    dpp_vars.add_cmake_defines({'CMAKE_TOOLCHAIN_FILE': get_option('vcpkg_toolchain_file')})
+endif
+
+dpp_subproj = cmake.subproject('DPP', options: dpp_vars)
+dpp_dep = dpp_subproj.dependency('dpp')
 endif
 threads_dep = dependency('threads')
 
@@ -46,7 +63,8 @@ dependencies = [stormkit_core_dep,
                 json_dep,
                 fmt_dep,
                 curl_dep,
-                threads_dep]
+                threads_dep,
+                dpp_dep]
 
 if get_option('shader_plugin').enabled()
     dependencies += [stormkit_render_dep]
