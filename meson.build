@@ -3,7 +3,7 @@ project(
     ['cpp'],
     version: '0.1.0',
     license: 'MIT',
-    default_options: ['cpp_std=c++2a',
+    default_options: [
                       'stormkit:enable_entities=false',
                       'stormkit:enable_engine=false',
                       'stormkit:enable_render=true',
@@ -13,6 +13,15 @@ project(
                       'stormkit:library_type=static',
                       'stormkit:buildtype=debug']
 )
+
+compiler = meson.get_compiler('cpp')
+
+if compiler.get_argument_syntax() == 'msvc'
+    add_project_arguments(['/std:c++latest', '/permissive-', '/DNOMINMAX'], language: ['cpp'])
+else
+    add_project_arguments(['-std=c++20'], language: ['cpp'])
+endif
+
 
 cmake = import('cmake')
 
@@ -24,44 +33,18 @@ endif
 stormkit_module_dep = dependency('stormkit_module')
 json_dep            = dependency('nlohmann_json')
 fmt_dep             = dependency('fmt')
-ssl_dep             = dependency('OpenSSL')
-boost_dep           = dependency('boost')
-threads_dep         = dependency('threads')
-curl_dep            = dependency('libcurl')
-
-discordpp_opt = cmake.subproject_options()
-discordpp_opt.add_cmake_defines({'CMAKE_CXX_STANDARD': '17'})
-
-if get_option('vcpkg_toolchain_file') != 'notoolchain'
-    discordpp_opt.add_cmake_defines({'CMAKE_TOOLCHAIN_FILE': get_option('vcpkg_toolchain_file')})
+if compiler.get_argument_syntax() == 'msvc'
+curl_dep            = dependency('CURL', method: 'cmake', modules: ['CURL::libcurl'])
+else
+curl_dep            = dependency('curl')
 endif
-
-discordpp_proj = cmake.subproject('discordpp', options: discordpp_opt)
-discordpp_plugin_overload_proj = cmake.subproject('discordpp-plugin-overload', options: discordpp_opt)
-discordpp_reast_beast_proj = cmake.subproject('discordpp-reest-beast', options: discordpp_opt)
-discordpp_websocket_simpleweb_proj = cmake.subproject('discordpp-websocket-simpleweb', options: discordpp_opt)
-discordpp_plugin_ratelimit_proj = cmake.subproject('discord-plugin-ratelimit', options: discordpp_opt)
-discordpp_plugin_responder_proj = cmake.subproject('discord-plugin-responder', options: discordpp_opt)
-
-discordpp_dep  = discordpp_proj.dependency('discordpp')
-discordpp_plugin_overload_dep = discordpp_plugin_overload_proj.dependency('discordpp-plugin-overload')
-discordpp_reast_beast_dep = discordpp_reast_beast_proj.dependency('beast')
-discordpp_websocket_simpleweb_dep = discordpp_websocket_simpleweb_proj.dependency('discordpp-websocket-simpleweb')
-discordpp_plugin_ratelimit_dep = discordpp_plugin_ratelimit_proj.dependency('discordpp-plugin-ratelimit')
-discordpp_plugin_responder_dep = discordpp_plugin_responder_proj.dependency('discordpp-plugin-responder')
+threads_dep = dependency('threads')
 
 dependencies = [stormkit_core_dep,
                 stormkit_log_dep,
                 stormkit_module_dep,
                 json_dep,
-                discordpp_dep,
-                discordpp_plugin_overload_dep,
-                discordpp_reast_beast_dep,
-                discordpp_websocket_simpleweb_dep,
-                discordpp_plugin_ratelimit_dep,
-                discordpp_plugin_responder_dep,
                 fmt_dep,
-                ssl_dep,
                 curl_dep,
                 threads_dep]
 
@@ -110,4 +93,4 @@ inquisitor = executable(
     extra_files: headers
 )
 
-subdir('plugins/')
+#subdir('plugins/')

@@ -4,15 +4,47 @@
 
 /////////// - STL - ///////////
 #include <csignal>
+#include <string_view>
 
 /////////// - Inquisitor - ///////////
 #include "Inquisitor.hpp"
 #include "Log.hpp"
 
-namespace beast = boost::beast;
-namespace ip = beast::net::ip;
-namespace http = beast::http;
-using tcp = ip::tcp;
+#pragma push_macro("interface")
+#undef interface
+
+using namespace std::literals;
+
+static constexpr auto ASCII_ART_LOGO =
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmhyhhhhhhhyhmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+dmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmysmmmmmmmmmshmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+dmmmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmysmmmmmmmmmmmsymmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+dmmmmmmmmmmmm+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmhommmmmmmmmmmmmsymmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+dmmmmmmmmmmmmmm+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmdddddddmmmmdddmmmmmddddddmmmddddddy+dmmmmdhysydmmmmssddddmmmmmddddddddmdddmmmmmddmmmmddddmmmmm"
+     "mmmmm/       +mm+   ymmmy     `-sm/        dmh/`     .+mo     `-smmm       `m-  -mmmy .dmmy   ymmmmm"
+     "mmmmmo::   ::smd`   .mmmy   ::`  so:::`   /ms   -:o+. .so  `::   smm   -:::/md`  +md.  :md`  +mmmmmm"
+     "mmmmmmmh   dmmm:     /mmy   ss.  +mmm/  `ymm`  om/hmmhmmo  `oo`  omm   -::::mmy   y:    s-  .mmmmmmm"
+     "mmmmmmmh   dmmy   o   hmy       :mmy.  -dmmm   yyo+mmmmmo       /mmm        mmm/           `hmmmmmmm"
+     "mmmmmmmh   dmm.  /m/  .my   oosdmmo   `+sssm+  `-s/o:./ho  `/`  .hmm   /ssssmmmm.    o-    smmmmmmmm"
+     "mmmmmmmh   dmo  `dmm.  +y   mmmmmm/        hms.      `:do  .h+:  `ym        mmmmh`  :mh   :mmmmmmmmm"
+     "mmmmmmmmsssmmysshmmmhsssdsssmmmmmmyss:ossssmmmd/o++:+dmmdssymohssssmssssssssmmmmmyssdmmyssdmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmd+mmmmmmmmysmmmd+mmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmshmmmmmmmm+dmmmmsymmmmmmmmohmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmd+mmmmmmmmhsmmmmmm+mmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmsymmmmmmmm+dmmmmmmysmmmmmmmmsymmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmd+mmmmmmmmhommmmmmmm+dmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmsymmmmmmmmodmmmmmmmmysmmmmmmmmsymmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+mmmmmmmmhommmmmmmmmm+dmmmmmmmm+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmhoyyyyyyyyohmmmmmmmmmmhsyyyyyyyyohmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"sv;
+
 
 static auto urlEncode(std::string_view data) -> std::string {
     auto result = std::string{};
@@ -43,6 +75,7 @@ static auto curlWriteData(void *ptr, std::size_t size, std::size_t nmemb, void *
 /////////////////////////////////////
 /////////////////////////////////////
 Inquisitor::Inquisitor() noexcept {
+    ilog("{}", ASCII_ART_LOGO);
     ilog("Using StormKit {}.{}.{} {} {}",
          STORMKIT_MAJOR_VERSION,
          STORMKIT_MINOR_VERSION,
@@ -70,7 +103,6 @@ Inquisitor::~Inquisitor() {
 /////////////////////////////////////
 /////////////////////////////////////
 auto Inquisitor::run([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) -> void {
-    m_bot->run();
 }
 
 /////////////////////////////////////
@@ -139,7 +171,7 @@ auto Inquisitor::loadPlugin(const std::filesystem::path &path) -> void {
 /////////////////////////////////////
 /////////////////////////////////////
 auto Inquisitor::initializeBot() -> void {
-
+/*
 #ifdef STORMKIT_BUILD_DEBUG
     discordpp::log::filter = discordpp::log::debug;
 #else
@@ -328,5 +360,7 @@ auto Inquisitor::initializeBot() -> void {
         }
     }
 
-    m_bot->initBot(9, "Bot " + m_token, m_asio_context);
+    m_bot->initBot(9, "Bot " + m_token, m_asio_context);*/
 }
+
+#pragma pop_macro("interface")

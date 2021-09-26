@@ -18,22 +18,10 @@
 /////////// - StormKit::module - ///////////
 #include <storm/module/Module.hpp>
 
-/////////// - discordpp - ///////////
-#include <discordpp/bot.hh>
-#include <discordpp/log.hh>
-#include <discordpp/plugin-overload.hh>
-#include <discordpp/plugin-ratelimit.hh>
-#include <discordpp/plugin-responder.hh>
-#include <discordpp/rest-beast.hh>
-#include <discordpp/websocket-simpleweb.hh>
-
-template class discordpp::PluginResponder<discordpp::PluginOverload<discordpp::PluginRateLimit<discordpp::WebsocketSimpleWeb<discordpp::RestBeast<discordpp::Bot>>>>>;
+/////////// - D++ - ///////////
 
 /////////// - nlohmann-json - ///////////
 #include <nlohmann/json.hpp>
-
-/////////// - Boost - ///////////
-#include <boost/asio.hpp>
 
 /////////// - curl - ///////////
 #include <curl/curl.h>
@@ -43,6 +31,9 @@ template class discordpp::PluginResponder<discordpp::PluginOverload<discordpp::P
 
 /////////// - Inquisitor-api - ///////////
 #include <PluginInterface.hpp>
+
+#pragma push_macro("interface")
+#undef interface
 
 class Inquisitor final: public storm::core::App {
   public:
@@ -59,8 +50,6 @@ class Inquisitor final: public storm::core::App {
     void stop() noexcept;
 
   private:
-    using Bot = discordpp::PluginResponder<discordpp::PluginOverload<discordpp::PluginRateLimit<discordpp::WebsocketSimpleWeb<discordpp::RestBeast<discordpp::Bot>>>>>;
-
     void parseSettings();
     void loadPlugins();
     void loadPlugin(const std::filesystem::path &path);
@@ -81,7 +70,6 @@ class Inquisitor final: public storm::core::App {
     std::vector<Plugin> m_plugins;
 
     storm::core::HashMap<std::string, json> m_plugin_options;
-
-    std::shared_ptr<boost::asio::io_context> m_asio_context;
-    std::shared_ptr<Bot> m_bot;
 };
+
+#pragma pop_macro("interface")
