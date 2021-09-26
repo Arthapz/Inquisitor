@@ -38,10 +38,11 @@ if compiler.get_argument_syntax() == 'msvc'
 curl_dep            = dependency('CURL', method: 'cmake', modules: ['CURL::libcurl'])
 dpp_dep = dependency('dpp')
 else
-curl_dep            = dependency('curl')
+curl_dep            = dependency('libcurl')
 dpp_vars = cmake.subproject_options()
 dpp_vars.add_cmake_defines({'CMAKE_CXX_STANDARD': '20'})
-dpp_vars.add_cmake_defines({'BUILD_SHARED_LIBS:BOOL': false})
+dpp_vars.add_cmake_defines({'BUILD_SHARED_LIBS': true})
+dpp_vars.add_cmake_defines({'DPP_BUILD_TEST': false})
 if build_type == 'debug' or build_type == 'debugoptimized'
     dpp_vars.add_cmake_defines({'CMAKE_BUILD_TYPE': 'Debug'})
 else
