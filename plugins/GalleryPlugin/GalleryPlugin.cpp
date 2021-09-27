@@ -11,7 +11,7 @@
 #include <chrono>
 #include <charconv>
 
-#if __cpp_lib_chrono < 201803L
+#if __cpp_lib_chrono < 201907L
     #include <ctime>
 #endif
 
@@ -79,15 +79,15 @@ auto GalleryPlugin::onMessageReceived(const dpp::message_create_t &event, dpp::c
     const auto name = (std::empty(message.member.nickname)) ?
         message.author->username : message.member.nickname;
 
-#if __cpp_lib_chrono >= 201803L
     auto now = std::chrono::system_clock::now();
+#if __cpp_lib_chrono >= 201907L
     auto tp = std::chrono::zoned_time{std::chrono::current_zone(), now}.get_local_time();
     auto day = std::chrono::floor<std::chrono::days>(tp);
     auto ymd = std::chrono::year_month_day{day};
 
     auto d = std::uint32_t{ymd.day()};
 #else
-    std::time_t tt = system_clock::to_time_t(now);
+    std::time_t tt = std::chrono::system_clock::to_time_t(now);
     std::tm utc_tm = *gmtime(&tt);
     std::tm local_tm = *localtime(&tt);
 
