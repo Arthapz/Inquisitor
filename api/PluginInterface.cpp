@@ -15,7 +15,8 @@ PluginInterface::~PluginInterface() = default;
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto PluginInterface::initialize(Functions &&functions,  const json &options, std::vector<const PluginInterface*> others) -> void {
+auto PluginInterface::initialize(const json &options, std::vector<const PluginInterface*> others) -> void {
+    /*
     sendMessage = std::move(functions.send_message_func);
     sendFile = std::move(functions.send_file_func);
     getMessage = std::move(functions.get_message_func);
@@ -25,7 +26,7 @@ auto PluginInterface::initialize(Functions &&functions,  const json &options, st
     deleteMessages = std::move(functions.delete_messages_func);
     addReaction = std::move(functions.add_reaction_func);
 
-    getHttpFile = std::move(functions.get_http_file_func);
+    getHttpFile = std::move(functions.get_http_file_func);*/
 
     m_others = std::move(others);
 

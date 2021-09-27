@@ -15,7 +15,8 @@
 /////////// - nlohmann-json - ///////////
 #include <nlohmann/json.hpp>
 
-class PluginInterface;
+/////////// - D++ - ///////////
+#include <dpp/dpp.h>
 
 class PluginInterface {
   public:
@@ -45,18 +46,22 @@ class PluginInterface {
         GetHttpFile get_http_file_func;
     };
 
+    struct Command {
+        std::string_view name;
+        std::string_view description;
+    };
+
     PluginInterface() noexcept;
     virtual ~PluginInterface() = 0;
 
-    void initialize(Functions&& functions, const json &options, std::vector<const PluginInterface*> others);
+    void initialize(const json &options, std::vector<const PluginInterface*> others);
 
     [[nodiscard]] virtual std::string_view name() const    = 0;
-    [[nodiscard]] virtual std::vector<std::string_view> commands() const = 0;
-    [[nodiscard]] virtual std::string_view help() const    = 0;
-    virtual void onCommand(std::string_view command, const json &msg) {};
+    [[nodiscard]] virtual std::vector<Command> commands() const = 0;
+    virtual void onCommand(const dpp::interaction_create_t &, dpp::cluster &) {};
 
-    virtual void onReady(const json &msg) {};
-    virtual void onMessageReceived(const json& msg) {};
+    virtual void onReady(const dpp::ready_t &, dpp::cluster &) {};
+    virtual void onMessageReceived(const dpp::message_create_t &, dpp::cluster &) {}
 
   protected:
     virtual void initialize(const json &options) {};
@@ -75,10 +80,17 @@ class PluginInterface {
     std::vector<const PluginInterface*> m_others;
 };
 
+#ifdef _WIN32
+    #define EXPORT __declspec(dllexport)
+#else
+    #define EXPORT
+#endif
+
+
 #define INQUISITOR_PLUGIN(type)                    \
     extern "C" {                                   \
-    type *allocatePlugin();                        \
-    void deallocatePlugin(type *plugin);           \
+    EXPORT type *allocatePlugin();                 \
+    EXPORT void deallocatePlugin(type *plugin);    \
     }                                              \
     type *allocatePlugin() { return new type {}; } \
     void deallocatePlugin(type *plugin) { delete plugin; }

@@ -4,6 +4,7 @@
 
 /////////// - BasePlugin - ///////////
 #include "BasePlugin.hpp"
+#undef FMT_HEADER_ONLY
 #include "Log.hpp"
 
 /////////// - StormKit::core - ///////////
@@ -27,42 +28,41 @@ auto BasePlugin::name() const -> std::string_view {
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto BasePlugin::commands() const -> std::vector<std::string_view> {
-    return {"help", "plugins", "about"};
+auto BasePlugin::commands() const -> std::vector<Command> {
+    return {
+       Command{"help", "Print this message"},
+       Command{"plugins", "Show loaded plugins"},
+       Command{"about", "Show about message"},
+    };
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto BasePlugin::help() const -> std::string_view {
-    return "🔵 **help** -> Print this message\n🔵 **plugins** -> Show plugins\n🔵 **about** -> Show about message";
-}
-
-/////////////////////////////////////
-/////////////////////////////////////
-auto BasePlugin::onReady(const json &msg) -> void {
-    auto response = json{};
-    response["content"] = fmt::format("-- 🤖 Inquisitor V{}.{} initialized 🤖 --", m_major_version, m_minor_version);
-    response["tts"] = false;
+auto BasePlugin::onReady([[maybe_unused]] const dpp::ready_t &event, dpp::cluster &bot) -> void {
+    const auto str =  fmt::format("-- :robot: Inquisitor V{}.{} initialized :robot: --", m_major_version, m_minor_version);
 
     for(const auto &id : m_channels) {
-        sendMessage(id, response);
+        auto id_as_snowflake = static_cast<dpp::snowflake>(std::stoll(id));
+        bot.message_create(dpp::message{id_as_snowflake, str});
     }
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto BasePlugin::onCommand(std::string_view command, const json &msg) -> void {
-    if(command == "help")
-        sendHelp(msg);
-    else if(command == "plugins")
-        sendPlugins(msg);
-    else if(command == "about")
-        sendAbout(msg);
+auto BasePlugin::onCommand(const dpp::interaction_create_t &event, [[maybe_unused]] dpp::cluster &bot) -> void {
+    auto cmd_data = std::get<dpp::command_interaction>(event.command.data);
+
+    if(cmd_data.name == "help")
+        sendHelp(event);
+    else if(cmd_data.name == "plugins")
+        sendPlugins(event);
+    else if(cmd_data.name == "about")
+        sendAbout(event);
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto BasePlugin::initialize(const json &options) -> void {
+auto BasePlugin::initialize(const json& options) -> void {
     m_major_version = options["inquisitor"]["major"].get<storm::core::UInt32>();
     m_minor_version = options["inquisitor"]["minor"].get<storm::core::UInt32>();
 
@@ -73,8 +73,10 @@ auto BasePlugin::initialize(const json &options) -> void {
     m_help_string = "";
     for(const auto &plugin_ptr : m_others) {
         if(!std::empty(plugin_ptr->commands())) {
-        m_help_string += fmt::format("\n\n------- {} -------\n", plugin_ptr->name());
-        m_help_string += plugin_ptr->help();
+            m_help_string += fmt::format("\n\n------- 🔵 **{}** -------\n", plugin_ptr->name());
+
+            for(const auto command : plugin_ptr->commands())
+                m_help_string += fmt::format("{} -> {}\n", command.name, command.description);
         }
 
         m_plugins_string += fmt::format(PLUGIN_FORMAT, plugin_ptr->name());
@@ -85,82 +87,53 @@ auto BasePlugin::initialize(const json &options) -> void {
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto BasePlugin::sendHelp(const json &msg) -> void {
-    const auto result = std::time(nullptr);
+auto BasePlugin::sendHelp(const dpp::interaction_create_t& event) -> void {
+    auto title = fmt::format("Inquisitor {}.{} commands",
+                             m_major_version,
+                             m_minor_version);
 
-    const auto title       = fmt::format("Inquisitor {}.{} commands",
-                                   m_major_version,
-                                   m_minor_version);
+    auto embed = dpp::embed{}
+                     .set_title(std::move(title))
+                     .set_description(m_help_string);
 
-    auto footer =
-        fmt::format("Requested by {} at {}", msg["author"]["username"].get<std::string>(), std::asctime(std::localtime(&result)));
-    footer.erase(std::remove(std::begin(footer), std::end(footer), '\n'), std::end(footer));
+    auto message = dpp::message{}
+                       .add_embed(std::move(embed));
 
-    auto response = json{
-        {"content", ""},
-        {"tts", false},
-        {"embed", {
-                       { "title", title},
-                       { "type", "rich"},
-                       { "description", m_help_string},
-                       { "footer", {}}
-                   }}
-    };
-    response["footer"]["text"] = footer;
-
-    sendMessage(msg["channel_id"].get<std::string>(), response);
+    event.reply(dpp::ir_channel_message_with_source, std::move(message));
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto BasePlugin::sendPlugins(const json &msg) -> void {
-    const auto result = std::time(nullptr);
+auto BasePlugin::sendPlugins(const dpp::interaction_create_t& event) -> void {
+    auto title       = fmt::format("Inquisitor {}.{} loaded plugins",
+                                         m_major_version,
+                                         m_minor_version);
 
-    const auto title       = fmt::format("Inquisitor {}.{} commands",
-                                   m_major_version,
-                                   m_minor_version);
+    auto embed = dpp::embed{}
+                     .set_title(std::move(title))
+                    // .set_type('rich')
+                     .set_description(m_plugins_string);
 
-    auto footer =
-        fmt::format("Requested by {} at {}", msg["author"]["username"].get<std::string>(), std::asctime(std::localtime(&result)));
-    footer.erase(std::remove(std::begin(footer), std::end(footer), '\n'), std::end(footer));
+    auto message = dpp::message{}
+                       .add_embed(std::move(embed));
 
-    auto response = json{
-        {"content", ""},
-        {"tts", false},
-        {"embed", {
-                       { "title", title},
-                       { "type", "rich"},
-                       { "description", m_plugins_string},
-                       { "footer", {}}
-                   }}
-    };
-    response["footer"]["text"] = footer;
-    sendMessage(msg["channel_id"].get<std::string>(), response);
+    event.reply(dpp::ir_channel_message_with_source, std::move(message));
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto BasePlugin::sendAbout(const json &msg) -> void {
-    const auto result = std::time(nullptr);
+auto BasePlugin::sendAbout(const dpp::interaction_create_t &event) -> void {
+    auto title       = fmt::format("Inquisitor version {}.{}",
+                                         m_major_version,
+                                         m_minor_version);
 
-    const auto title       = fmt::format("Inquisitor version {}.{}",
-                                   m_major_version,
-                                   m_minor_version);
+    auto embed = dpp::embed{}
+                     .set_title(std::move(title))
+                    // .set_type('rich')
+                     .set_description(m_about_string);
 
-    auto footer =
-        fmt::format("Requested by {} at {}", msg["author"]["username"].get<std::string>(), std::asctime(std::localtime(&result)));
-    footer.erase(std::remove(std::begin(footer), std::end(footer), '\n'), std::end(footer));
+    auto message = dpp::message{}
+                       .add_embed(std::move(embed));
 
-    auto response = json{
-        {"content", ""},
-        {"tts", false},
-        {"embed", {
-                       { "title", title},
-                       { "type", "rich"},
-                       { "description", m_about_string},
-                       { "footer", {}}
-                   }}
-    };
-    response["footer"]["text"] = footer;
-    sendMessage(msg["channel_id"].get<std::string>(), response);
+    event.reply(dpp::ir_channel_message_with_source, std::move(message));
 }

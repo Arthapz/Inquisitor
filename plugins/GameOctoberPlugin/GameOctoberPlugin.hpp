@@ -11,24 +11,25 @@
 /////////// - Inquisitor-API - ///////////
 #include <PluginInterface.hpp>
 
-class CleanChannelPlugin final: public PluginInterface {
+class GameOctoberPlugin final: public PluginInterface {
   public:
-    CleanChannelPlugin() noexcept;
-    ~CleanChannelPlugin() override;
+    GameOctoberPlugin() noexcept;
+    ~GameOctoberPlugin() override;
 
     [[nodiscard]] std::string_view name() const override;
-    [[nodiscard]] std::vector<std::string_view> commands() const override;
-    [[nodiscard]] std::string_view help() const override;
+    [[nodiscard]] std::vector<Command> commands() const override;
 
-    void onCommand(std::string_view command, const json &msg) override;
-
+    void onMessageReceived(const dpp::message_create_t &, dpp::cluster &) override;
   protected:
     void initialize(const json &options) override;
 
   private:
-    void cleanChannel(std::string channel);
+    std::regex m_regex;
 
-    std::vector<std::string> m_moderators;
+    struct Guild {
+        dpp::snowflake gallery;
+        dpp::snowflake discussions;
+    };
 
-    std::vector<std::string> m_channels;
+    std::vector<Guild> m_guilds;
 };

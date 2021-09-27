@@ -17,10 +17,9 @@ class MelonPlugin final: public PluginInterface {
     ~MelonPlugin() override;
 
     [[nodiscard]] std::string_view name() const override;
-    [[nodiscard]] std::vector<std::string_view> commands() const override;
-    [[nodiscard]] std::string_view help() const override;
+    [[nodiscard]] std::vector<Command> commands() const override;
 
-    void onMessageReceived(const json &msg) override;
+    void onMessageReceived(const dpp::message_create_t &, dpp::cluster &) override;
   private:
     std::regex m_regex;
 };

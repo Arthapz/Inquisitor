@@ -81,7 +81,7 @@ api_headers = files([
 inquisitor_api = static_library(
     'inquisitor_api',
     api_sources,
-    dependencies: json_dep,
+    dependencies: [dpp_dep, json_dep],
     extra_files: api_headers
 )
 
@@ -97,4 +97,4 @@ inquisitor = executable(
     extra_files: headers
 )
 
-#subdir('plugins/')
+subdir('plugins/')

@@ -19,19 +19,18 @@ class BasePlugin final: public PluginInterface {
     ~BasePlugin() override;
 
     [[nodiscard]] std::string_view name() const override;
-    [[nodiscard]] std::vector<std::string_view> commands() const override;
-    [[nodiscard]] std::string_view help() const override;
+    [[nodiscard]] std::vector<Command> commands() const override;
 
-    void onReady(const json &msg) override;
-    void onCommand(std::string_view command, const json &msg) override;
+    void onReady(const dpp::ready_t &, dpp::cluster &) override;
+    void onCommand(const dpp::interaction_create_t &, dpp::cluster &) override;
 
   protected:
     void initialize(const json &options) override;
 
   private:
-    void sendHelp(const json &msg);
-    void sendPlugins(const json &msg);
-    void sendAbout(const json &msg);
+    void sendHelp(const dpp::interaction_create_t &);
+    void sendPlugins(const dpp::interaction_create_t &);
+    void sendAbout(const dpp::interaction_create_t &msg);
 
     storm::core::UInt32 m_major_version;
     storm::core::UInt32 m_minor_version;

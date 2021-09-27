@@ -11,15 +11,20 @@
 /////////// - Inquisitor-API - ///////////
 #include <PluginInterface.hpp>
 
-class QuoteMessagePlugin final: public PluginInterface {
+class GalleryPlugin final: public PluginInterface {
   public:
-    QuoteMessagePlugin() noexcept;
-    ~QuoteMessagePlugin() override;
+    GalleryPlugin() noexcept;
+    ~GalleryPlugin() override;
 
     [[nodiscard]] std::string_view name() const override;
     [[nodiscard]] std::vector<Command> commands() const override;
 
     void onMessageReceived(const dpp::message_create_t &, dpp::cluster &) override;
+  protected:
+    void initialize(const json &options) override;
+
   private:
     std::regex m_regex;
+
+    std::vector<std::string> m_channels;
 };

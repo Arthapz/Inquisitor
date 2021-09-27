@@ -1,9 +1,10 @@
 subdir('BasePlugin')
-subdir('RandomQuotePlugin')
+#subdir('RandomQuotePlugin')
 subdir('QuoteMessagePlugin')
-subdir('CleanChannelPlugin')
+subdir('GalleryPlugin')
+subdir('GameOctoberPlugin')
 subdir('MelonPlugin')
 
-if get_option('shader_plugin').enabled()
-    subdir('ShaderPlugin')
-endif
+#if get_option('shader_plugin').enabled()
+#    subdir('ShaderPlugin')
+#endif

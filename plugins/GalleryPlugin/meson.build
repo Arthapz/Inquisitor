@@ -1,16 +1,16 @@
-dependencies = [stormkit_core_dep, stormkit_log_dep, json_dep, fmt_dep, inquisitor_api_dep, dpp_dep]
+dependencies = [stormkit_core_dep, stormkit_log_dep, json_dep, inquisitor_api_dep, dpp_dep]
 
 sources = files([
-    'BasePlugin.cpp'
+    'GalleryPlugin.cpp'
 ])
  
 headers = files([
-    'BasePlugin.hpp',
+    'GalleryPlugin.hpp',
     'Log.hpp'
 ])
  
 hello_plugin = shared_library(
-    'baseplugin',
+    'galleryplugin',
     sources,
     extra_files: headers,
     dependencies: dependencies

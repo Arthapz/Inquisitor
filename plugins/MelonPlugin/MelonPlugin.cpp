@@ -4,6 +4,7 @@
 
 /////////// - MelonPlugin - ///////////
 #include "MelonPlugin.hpp"
+#undef FMT_HEADER_ONLY
 #include "Log.hpp"
 
 INQUISITOR_PLUGIN(MelonPlugin)
@@ -27,27 +28,17 @@ auto MelonPlugin::name() const -> std::string_view {
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto MelonPlugin::commands() const -> std::vector<std::string_view> {
+auto MelonPlugin::commands() const -> std::vector<Command> {
     return {};
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto MelonPlugin::help() const -> std::string_view {
-    return "";
-}
-
-/////////////////////////////////////
-/////////////////////////////////////
-auto MelonPlugin::onMessageReceived(const json &msg) -> void {
-    auto channel_id = msg["channel_id"].get<std::string>();
-    auto message_id = msg["id"].get<std::string>();
-
+auto MelonPlugin::onMessageReceived(const dpp::message_create_t &event, dpp::cluster &bot) -> void {
     auto matches = std::smatch{};
-
-    auto content = msg["content"].get<std::string>();
+    const auto &content = event.msg->content;
 
     if(!std::regex_search(content, matches, m_regex)) return;
 
-    addReaction(channel_id, message_id, "%F0%9F%8D%88");
+    bot.message_add_reaction(*event.msg, "🍈");
 }

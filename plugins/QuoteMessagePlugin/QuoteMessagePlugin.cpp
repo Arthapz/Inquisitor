@@ -4,6 +4,7 @@
 
 /////////// - QuoteMessagePlugin - ///////////
 #include "QuoteMessagePlugin.hpp"
+#undef FMT_HEADER_ONLY
 #include "Log.hpp"
 
 INQUISITOR_PLUGIN(QuoteMessagePlugin)
@@ -27,58 +28,49 @@ auto QuoteMessagePlugin::name() const -> std::string_view {
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto QuoteMessagePlugin::commands() const -> std::vector<std::string_view> {
+auto QuoteMessagePlugin::commands() const -> std::vector<Command> {
     return {};
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto QuoteMessagePlugin::help() const -> std::string_view {
-    return "";
-}
-
-/////////////////////////////////////
-/////////////////////////////////////
-auto QuoteMessagePlugin::onMessageReceived(const json &msg) -> void {
-    const auto result = std::time(nullptr);
-
+auto QuoteMessagePlugin::onMessageReceived(const dpp::message_create_t &event, dpp::cluster &bot) -> void {
     auto matches = std::smatch{};
-
-    auto content = msg["content"].get<std::string>();
+    const auto &content = event.msg->content;
 
     if(!std::regex_search(content, matches, m_regex)) return;
 
-    getChannel(matches[2].str(), [this, channel_id = matches[2].str(), message_id = matches[3].str(), msg, result](const json &get_response) {
-        if(msg["guild_id"].get<std::string>() != get_response["body"]["guild_id"].get<std::string>()) return;
+    const auto guild_id = event.msg->guild_id;
 
-        getMessage(channel_id, message_id, [this, msg, result](const json &get_response){
-            const auto &requested_msg = get_response["body"];
+    const auto channel_id = static_cast<dpp::snowflake>(std::stoll(matches[2].str()));
+    const auto message_id = static_cast<dpp::snowflake>(std::stoll(matches[3].str()));
 
-            auto footer =
-                fmt::format("Quoted by {} at {}", msg["author"]["username"].get<std::string>(), std::asctime(std::localtime(&result)));
-            footer.erase(std::remove(std::begin(footer), std::end(footer), '\n'), std::end(footer));
+    const auto target_channel_id = event.msg->channel_id;
 
-            auto avatar_hash = requested_msg["author"]["avatar"].get<std::string>();
-            auto ext = (avatar_hash[0] == 'a' &&
-                        avatar_hash[1] == '_') ? "gif" : "png";
+    bot.message_get(message_id, channel_id, [&bot, guild_id, content, target_channel_id](const auto &event){
+        if(event.is_error())
+            elog("{}", event.get_error().message);
+        else {
+            const auto &message = std::get<dpp::message>(event.value);
 
-            auto response = json{
-                {"embed", {
-                               {"author", {
-                                       {"name", requested_msg["author"]["username"].get<std::string>()},
-                                           {"icon_url", fmt::format("https://cdn.discordapp.com/avatars/{}/{}.{}", requested_msg["author"]["id"].get<std::string>(), avatar_hash, ext)}
-                                   }
-                               },
-                               { "type", "rich"},
-                               { "description", requested_msg["content"].get<std::string>()},
-                               { "footer", {}}
-                           }}
+            if(message.guild_id != guild_id) return;
+
+            const auto name = (std::empty(message.member.nickname)) ?
+                  message.author->username : message.member.nickname;
+
+            auto author = dpp::embed_author{
+                .name = name,
+                .url  = fmt::format("https://discordapp.com/users/{}", message.author->id),
+                .icon_url = message.author->get_avatar_url()
             };
-            response["footer"]["text"] = footer;
 
-            ilog("{}", response.dump());
+            auto embed = dpp::embed{}
+                .set_description(message.content)
+                .set_author(std::move(author));
 
-            sendMessage(msg["channel_id"].get<std::string>(), response);
-        });
+            auto reply = dpp::message{target_channel_id, std::move(embed)};
+
+            bot.message_create(reply);
+        }
     });
 }

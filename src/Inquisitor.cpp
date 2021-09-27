@@ -75,7 +75,7 @@ static auto curlWriteData(void *ptr, std::size_t size, std::size_t nmemb, void *
 /////////////////////////////////////
 /////////////////////////////////////
 Inquisitor::Inquisitor() noexcept {
-    ilog("{}", ASCII_ART_LOGO);
+    //std::cout << ASCII_ART_LOGO << std::endl;
     ilog("Using StormKit {}.{}.{} {} {}",
          STORMKIT_MAJOR_VERSION,
          STORMKIT_MINOR_VERSION,
@@ -85,10 +85,11 @@ Inquisitor::Inquisitor() noexcept {
 
     //curl_global_init(CURL_GLOBAL_ALL);
     parseSettings();
+    loadPlugins();
 
     m_bot = std::make_unique<dpp::cluster>(m_token);
 
-    m_bot->on_log([this](const auto &event){
+    m_bot->on_log([](const auto &event){
         switch(event.severity) {
             case dpp::ll_debug:
                 dpp::dlog("{}", event.message);
@@ -111,9 +112,13 @@ Inquisitor::Inquisitor() noexcept {
     });
 
     m_bot->on_ready([this](const auto &event) {
-        ilog("{} logged as", m_bot->me.username);
-        loadPlugins();
+        ilog("logged as \"{}\"", m_bot->me.username);
+
         initializeBot();
+
+        for(auto &plugin : m_plugins) {
+           plugin.interface->onReady(event, *m_bot);
+        }
     });
 }
 
@@ -170,7 +175,7 @@ auto Inquisitor::loadPlugins() -> void {
     for (auto &plugin : std::filesystem::recursive_directory_iterator("plugins")) {
         const auto plugin_path = plugin.path();
 
-        if (plugin_path.extension() == ".so") {
+        if (plugin_path.extension() == ".so" || plugin_path.extension() == ".dll") {
             ilog("{} found", plugin_path.string());
             loadPlugin(plugin_path);
         }
@@ -200,14 +205,52 @@ auto Inquisitor::loadPlugin(const std::filesystem::path &path) -> void {
 /////////////////////////////////////
 /////////////////////////////////////
 auto Inquisitor::initializeBot() -> void {
-/*
-#ifdef STORMKIT_BUILD_DEBUG
-    discordpp::log::filter = discordpp::log::debug;
-#else
-    discordpp::log::filter = discordpp::log::info;
-#endif
+    struct Commands{
+        PluginInterface *plugin;
+        std::vector<PluginInterface::Command> commands;
+    };
 
-    discordpp::log::out = &std::cerr;
+    auto plugins = std::vector<Commands>{};
+
+    auto _plugins = std::vector<const PluginInterface *>{};
+    for(const auto &plugin :m_plugins)
+        _plugins.emplace_back(plugin.interface);
+
+    for(auto &plugin : m_plugins) {
+        plugin.interface->initialize(m_plugin_options.at(std::string{plugin.interface->name()}), _plugins);
+
+        if(!std::empty(plugin.interface->commands())) {
+            auto plugin_command = Commands{};
+            plugin_command.plugin = plugin.interface;
+            plugin_command.commands = plugin.interface->commands();
+            for(auto command_ : plugin.interface->commands()) {
+                auto command = dpp::slashcommand{}
+                    .set_name(std::string{command_.name})
+                    .set_description(std::string{command_.description})
+                    .set_application_id(m_bot->me.id)
+                    .set_type(dpp::ctxm_chat_input);
+
+                m_bot->global_command_create(command);
+            }
+            plugins.emplace_back(std::move(plugin_command));
+        }
+    }
+
+    m_bot->on_interaction_create([this, plugins = std::move(plugins)](const auto &event) {
+        auto cmd_data = std::get<dpp::command_interaction>(event.command.data);
+
+        for(auto &plugin : plugins)
+            for(auto &command : plugin.commands)
+                if(cmd_data.name == command.name)
+                    plugin.plugin->onCommand(event, *m_bot);
+    });
+
+    m_bot->on_message_create([this](const auto &event) {
+        for(auto &plugin : m_plugins) {
+            plugin.interface->onMessageReceived(event, *m_bot);
+        }
+    });
+/*
 
 
     m_asio_context = std::make_shared<boost::asio::io_context>();

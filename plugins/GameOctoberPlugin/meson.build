@@ -1,16 +1,16 @@
 dependencies = [stormkit_core_dep, stormkit_log_dep, json_dep, fmt_dep, inquisitor_api_dep, dpp_dep]
 
 sources = files([
-    'BasePlugin.cpp'
+    'GameOctoberPlugin.cpp'
 ])
  
 headers = files([
-    'BasePlugin.hpp',
+    'GameOctoberPlugin.hpp',
     'Log.hpp'
 ])
  
 hello_plugin = shared_library(
-    'baseplugin',
+    'gameoctoberplugin',
     sources,
     extra_files: headers,
     dependencies: dependencies
