@@ -1,5 +1,5 @@
 subdir('BasePlugin')
-#subdir('RandomQuotePlugin')
+subdir('RandomQuotePlugin')
 subdir('QuoteMessagePlugin')
 subdir('GalleryPlugin')
 subdir('GameOctoberPlugin')

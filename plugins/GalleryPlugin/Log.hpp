@@ -7,4 +7,4 @@
 /////////// - StormKit::log - ///////////
 #include <storm/log/LogHandler.hpp>
 
-LOGGER("QuoteMessagePlugin")
+LOGGER("GalleryPlugin")

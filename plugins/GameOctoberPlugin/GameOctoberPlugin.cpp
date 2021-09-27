@@ -111,107 +111,11 @@ auto GameOctoberPlugin::onMessageReceived(const dpp::message_create_t &event, dp
 #endif
 
     bot.thread_create_with_message(
-        fmt::format("gameoctober-{}-{}", name, d),
+        storm::core::format("gameoctober-{}-{}", name, d),
         message.channel_id,
         message.id,
         1440,
         [](const auto &event) {
             if(event.is_error()) elog("{}", event.http_info.body);
     });
-
-    /*const auto name = (std::empty(message.member.nickname)) ?
-        message.author->username : message.member.nickname;
-
-    auto author = dpp::embed_author{
-        .name = name,
-        .url  = fmt::format("https://discordapp.com/users/{}", message.author->id),
-        .icon_url = message.author->get_avatar_url()
-    };
-
-    auto description = message.content;
-
-    if(std::empty(message.attachments) && has_url) {
-        const auto is_image = matches[0].str().find(".png") != std::string::npos ||
-                              matches[0].str().find(".PNG") != std::string::npos ||
-                              matches[0].str().find(".jpg") != std::string::npos ||
-                              matches[0].str().find(".JPG") != std::string::npos ||
-                              matches[0].str().find(".jpeg") != std::string::npos ||
-                              matches[0].str().find(".JPEG") != std::string::npos ||
-                              matches[0].str().find(".gif") != std::string::npos ||
-                              matches[0].str().find(".GIF") != std::string::npos;
-
-            auto embed = dpp::embed{}
-               .set_author(std::move(author));
-
-            if(is_image)
-                embed.set_image(matches[0]);
-            else
-                embed.set_description(message.content);
-
-            auto replica = dpp::message{it->discussions, std::move(embed)}
-               .add_component(
-                   dpp::component{}.add_component(dpp::component{}
-                        .set_type(dpp::cot_button)
-                        .set_label("Galerie")
-                        .set_style(dpp::cos_link)
-                        .set_url(fmt::format("https://discord.com/channels/{}/{}/{}", message.guild_id, message.channel_id, message.id))
-                        .set_id("Galerie_button"))
-               );
-            bot.message_create(replica, [guild = *it, &bot](const auto &event){
-                if(event.is_error()) elog("{}", event.http_info.body);
-                else {
-                    const auto &message = std::get<dpp::message>(event.value);
-                    auto reply = dpp::message{guild.gallery, "Joli <:bave:626471505311563796>"}
-                        .add_component(
-                            dpp::component{}.add_component(dpp::component{}
-                                .set_type(dpp::cot_button)
-                                .set_label("Discussion")
-                                .set_style(dpp::cos_link)
-                                .set_url(fmt::format("https://discord.com/channels/{}/{}/{}", message.guild_id, message.channel_id, message.id))
-                                .set_id("Discussion_button"))
-                       );
-                    bot.message_create(reply, [](const auto &event) {
-                        if(event.is_error()) elog("{}", event.http_info.body);
-                    });
-                }
-            });
-    } else for(auto attachment : message.attachments) {
-        if(attachment.content_type.find("image") != std::string::npos) {
-            auto embed = dpp::embed{}
-               .set_description(message.content)
-               .set_author(std::move(author))
-               .set_image(attachment.url);
-
-            auto replica = dpp::message{it->discussions, std::move(embed)}
-               .add_component(
-                   dpp::component{}.add_component(dpp::component{}
-                        .set_type(dpp::cot_button)
-                        .set_label("Galerie")
-                        .set_style(dpp::cos_link)
-                        .set_url(fmt::format("https://discord.com/channels/{}/{}/{}", message.guild_id, message.channel_id, message.id))
-                        .set_id("Galerie_button"))
-               );
-            bot.message_create(replica, [guild = *it, &bot](const auto &event){
-                if(event.is_error()) elog("{}", event.http_info.body);
-                else {
-                    const auto &message = std::get<dpp::message>(event.value);
-                    auto reply = dpp::message{guild.gallery, "Joli <:bave:626471505311563796>"}
-                        .add_component(
-                            dpp::component{}.add_component(dpp::component{}
-                                .set_type(dpp::cot_button)
-                                .set_label("Discussion")
-                                .set_style(dpp::cos_link)
-                                .set_url(fmt::format("https://discord.com/channels/{}/{}/{}", message.guild_id, message.channel_id, message.id))
-                                .set_id("Discussion_button"))
-                       );
-                    bot.message_create(reply, [](const auto &event) {
-                        if(event.is_error()) elog("{}", event.http_info.body);
-                    });
-                }
-            });
-        }
-
-        description.clear();
-    }*/
-
 }

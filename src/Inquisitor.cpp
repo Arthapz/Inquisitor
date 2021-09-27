@@ -54,7 +54,7 @@ static auto urlEncode(std::string_view data) -> std::string {
         if(std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') result += c;
         else {
             result += '%';
-            result += fmt::format("{:0X}", c);
+            result += storm::core::format("{:0X}", c);
         }
     }
 
@@ -75,7 +75,7 @@ static auto curlWriteData(void *ptr, std::size_t size, std::size_t nmemb, void *
 /////////////////////////////////////
 /////////////////////////////////////
 Inquisitor::Inquisitor() noexcept {
-    //std::cout << ASCII_ART_LOGO << std::endl;
+    std::cout << ASCII_ART_LOGO << std::endl;
     ilog("Using StormKit {}.{}.{} {} {}",
          STORMKIT_MAJOR_VERSION,
          STORMKIT_MINOR_VERSION,
@@ -163,7 +163,7 @@ auto Inquisitor::parseSettings() -> void {
         if(document.contains(enabled_plugin))
             options = document[enabled_plugin];
 
-        options["inquisitor"] = json::parse(fmt::format(R"({{ "major": {}, "minor": {} }})", MAJOR_VERSION, MINOR_VERSION));
+        options["inquisitor"] = json::parse(storm::core::format(R"({{ "major": {}, "minor": {} }})", MAJOR_VERSION, MINOR_VERSION));
 
         m_plugin_options.emplace(enabled_plugin, std::move(options));
     }
@@ -280,7 +280,7 @@ auto Inquisitor::initializeBot() -> void {
                                      const json &msg) {
         m_bot->callJson()
             ->method("POST")
-            ->target(fmt::format("/channels/{}/messages", channel_id))
+            ->target(storm::core::format("/channels/{}/messages", channel_id))
             ->payload(msg)
             ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
                 if(error)
@@ -295,7 +295,7 @@ auto Inquisitor::initializeBot() -> void {
                                   const json &msg) {
         m_bot->callFile()
             ->method("POST")
-            ->target(fmt::format("/channels/{}/messages", channel_id))
+            ->target(storm::core::format("/channels/{}/messages", channel_id))
             ->filename(std::move(filename))
             ->filetype(std::move(filetype))
             ->file(std::move(file))
@@ -313,7 +313,7 @@ auto Inquisitor::initializeBot() -> void {
                                     std::function<void(const json &)> on_response) {
         m_bot->call()
             ->method("GET")
-            ->target(fmt::format("/channels/{}/messages/{}", channel_id, message_id))
+            ->target(storm::core::format("/channels/{}/messages/{}", channel_id, message_id))
             ->onRead(
                 [on_response = std::move(on_response), channel_id, message_id](const bool error, const json msg) {
                     if(error) {
@@ -328,7 +328,7 @@ auto Inquisitor::initializeBot() -> void {
                                     std::function<void(const json &)> on_response) {
         m_bot->call()
             ->method("GET")
-            ->target(fmt::format("/channels/{}", channel_id))
+            ->target(storm::core::format("/channels/{}", channel_id))
             ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
                 if(error) {
                     elog("Failed to get channel {}, retrying", channel_id);
@@ -343,7 +343,7 @@ auto Inquisitor::initializeBot() -> void {
     const auto get_all_message = [this](std::string_view channel_id, std::function<void(const json &)> on_response) {
         m_bot->call()
             ->method("GET")
-            ->target(fmt::format("/channels/{}/messages", channel_id))
+            ->target(storm::core::format("/channels/{}/messages", channel_id))
             ->onRead([on_response = std::move(on_response), channel_id](const bool error, const json msg) {
                 if(error) {
                     elog("Failed to get all messages from channel {}", channel_id);
@@ -359,7 +359,7 @@ auto Inquisitor::initializeBot() -> void {
 
         m_bot->callJson()
             ->method("DELETE")
-            ->target(fmt::format("/channels/{}/messages/{}", channel_id, message_id))
+            ->target(storm::core::format("/channels/{}/messages/{}", channel_id, message_id))
             ->payload(std::move(payload))
             ->onRead([channel_id, message_id](const bool error, [[maybe_unused]] const json msg) {
                 if(error)
@@ -374,7 +374,7 @@ auto Inquisitor::initializeBot() -> void {
 
         m_bot->callJson()
             ->method("POST")
-            ->target(fmt::format("/channels/{}/messages/bulk-delete", channel_id))
+            ->target(storm::core::format("/channels/{}/messages/bulk-delete", channel_id))
             ->payload(std::move(payload))
             ->onRead([channel_id](const bool error, [[maybe_unused]] const json msg) {
                 if(error)
@@ -387,7 +387,7 @@ auto Inquisitor::initializeBot() -> void {
 
         m_bot->callJson()
             ->method("PUT")
-            ->target(fmt::format("/channels/{}/messages/{}/reactions/{}/@me", channel_id, message_id, emoji))
+            ->target(storm::core::format("/channels/{}/messages/{}/reactions/{}/@me", channel_id, message_id, emoji))
             ->payload(std::move(payload))
             ->onRead([channel_id, message_id](const bool error, [[maybe_unused]] const json msg) {
                 if(error)

@@ -8,11 +8,14 @@
 
 /////////// - STL - ///////////
 #include <iostream>
+#include <chrono>
 
 /////////// - StormKit::core - ///////////
 #include <storm/core/Strings.hpp>
 
 INQUISITOR_PLUGIN(RandomQuotePlugin)
+
+using namespace std::literals;
 
 /////////////////////////////////////
 /////////////////////////////////////
@@ -46,38 +49,43 @@ auto RandomQuotePlugin::name() const -> std::string_view {
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto RandomQuotePlugin::commands() const -> std::vector<std::string_view> {
-    return { "random-quote" };
+auto RandomQuotePlugin::commands() const -> std::vector<Command> {
+    return {
+       Command{ "random-quote", "Print a random quote" },
+       Command{ "rq", "Shortcut for random-quote" },
+    };
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto RandomQuotePlugin::help() const -> std::string_view {
-    return "🔵 **random-quote** -> Print a random quote";
+auto RandomQuotePlugin::onCommand(const dpp::interaction_create_t &event, [[maybe_unused]] dpp::cluster &bot) -> void {
+    auto quote = getQuote();
+
+    if(!std::empty(quote))
+        event.reply(dpp::ir_channel_message_with_source, dpp::message{quote});
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
-auto RandomQuotePlugin::onCommand(std::string_view command, const json &msg) -> void {
-    sendQuote(msg);
-}
-
-/////////////////////////////////////
-/////////////////////////////////////
-auto RandomQuotePlugin::onMessageReceived(const json &msg) -> void {
-    auto it = std::ranges::find_if(m_last_sended_messages, [&msg](const auto &p) { return p.first == msg["channel_id"].get<std::string>(); });
+auto RandomQuotePlugin::onMessageReceived(const dpp::message_create_t &event, dpp::cluster &bot) -> void {
+    auto it = std::ranges::find_if(m_last_sended_messages, [&event](const auto &p) { return p.first == std::to_string(event.msg->channel_id); });
     if(it == std::ranges::cend(m_last_sended_messages)) return;
 
     auto now = Clock::now();
 
     auto &tp = m_last_sended_messages[it->first];
 
-    if(std::chrono::duration_cast<std::chrono::milliseconds>(now - tp).count() < 6000) return;
+    if(std::chrono::duration_cast<std::chrono::seconds>(now - tp) < 1h) return;
 
     tp = now;
 
     auto n = m_send_distribution(m_generator);
-    if(n == 50) sendQuote(msg);
+    if(n == 50) {
+        auto quote = getQuote();
+
+        if(!std::empty(quote))
+            bot.message_create(dpp::message{event.msg->channel_id, quote});
+    }
 }
 
 
@@ -102,15 +110,10 @@ auto RandomQuotePlugin::initialize(const json &options) -> void {
 
 /////////////////////////////////////
 /////////////////////////////////////
-void RandomQuotePlugin::sendQuote(const json &msg) {
-    if(std::empty(m_quote_list)) return;
+auto RandomQuotePlugin::getQuote() -> std::string {
+    if(std::empty(m_quote_list)) return "";
 
     auto quote_n = m_quote_distribution(m_generator);
 
-    auto quote = std::string_view{m_quote_list[quote_n]};
-
-    auto response = json{};
-    response["content"] = quote;
-    response["tts"] = false;
-    sendMessage(msg["channel_id"].get<std::string>(), response);
+    return m_quote_list[quote_n];
 }

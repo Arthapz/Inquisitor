@@ -1,4 +1,4 @@
-dependencies = [stormkit_core_dep, stormkit_log_dep, json_dep, inquisitor_api_dep]
+dependencies = [stormkit_core_dep, stormkit_log_dep, json_dep, inquisitor_api_dep, dpp_dep]
 
 sources = files([
     'RandomQuotePlugin.cpp'

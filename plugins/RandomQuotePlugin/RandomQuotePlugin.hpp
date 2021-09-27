@@ -23,11 +23,10 @@ class RandomQuotePlugin final: public PluginInterface {
     ~RandomQuotePlugin() override;
 
     [[nodiscard]] std::string_view name() const override;
-    [[nodiscard]] std::vector<std::string_view> commands() const override;
-    [[nodiscard]] std::string_view help() const override;
-    void onCommand(std::string_view command, const json &msg) override;
+    [[nodiscard]] std::vector<Command> commands() const override;
 
-    void onMessageReceived(const json &msg) override;
+    void onCommand(const dpp::interaction_create_t &, dpp::cluster &) override;
+    void onMessageReceived(const dpp::message_create_t &, dpp::cluster &) override;
 
   protected:
     void initialize(const json &options) override;
@@ -35,7 +34,7 @@ class RandomQuotePlugin final: public PluginInterface {
   private:
     using Clock = std::chrono::high_resolution_clock;
 
-    void sendQuote(const json &msg);
+    std::string getQuote();
 
     std::mt19937 m_generator;
     std::uniform_int_distribution<storm::core::UInt32> m_send_distribution;

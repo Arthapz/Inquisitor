@@ -39,7 +39,7 @@ auto BasePlugin::commands() const -> std::vector<Command> {
 /////////////////////////////////////
 /////////////////////////////////////
 auto BasePlugin::onReady([[maybe_unused]] const dpp::ready_t &event, dpp::cluster &bot) -> void {
-    const auto str =  fmt::format("-- :robot: Inquisitor V{}.{} initialized :robot: --", m_major_version, m_minor_version);
+    const auto str =  storm::core::format("-- :robot: Inquisitor V{}.{} initialized :robot: --", m_major_version, m_minor_version);
 
     for(const auto &id : m_channels) {
         auto id_as_snowflake = static_cast<dpp::snowflake>(std::stoll(id));
@@ -73,22 +73,22 @@ auto BasePlugin::initialize(const json& options) -> void {
     m_help_string = "";
     for(const auto &plugin_ptr : m_others) {
         if(!std::empty(plugin_ptr->commands())) {
-            m_help_string += fmt::format("\n\n------- 🔵 **{}** -------\n", plugin_ptr->name());
+            m_help_string += storm::core::format("\n\n------- 🔵 **{}** -------\n", plugin_ptr->name());
 
             for(const auto command : plugin_ptr->commands())
-                m_help_string += fmt::format("{} -> {}\n", command.name, command.description);
+                m_help_string += storm::core::format("{} -> {}\n", command.name, command.description);
         }
 
-        m_plugins_string += fmt::format(PLUGIN_FORMAT, plugin_ptr->name());
+        m_plugins_string += storm::core::format(PLUGIN_FORMAT, plugin_ptr->name());
     }
 
-    m_about_string = fmt::format("**author**: Arthapz\n**organization**: Tapzcrew\n**sources**: https://gitlab.com/tapzcrew/inquisitor-cpp", m_major_version, m_minor_version);
+    m_about_string = storm::core::format("**author**: Arthapz\n**organization**: Tapzcrew\n**sources**: https://gitlab.com/tapzcrew/inquisitor-cpp", m_major_version, m_minor_version);
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
 auto BasePlugin::sendHelp(const dpp::interaction_create_t& event) -> void {
-    auto title = fmt::format("Inquisitor {}.{} commands",
+    auto title = storm::core::format("Inquisitor {}.{} commands",
                              m_major_version,
                              m_minor_version);
 
@@ -105,7 +105,7 @@ auto BasePlugin::sendHelp(const dpp::interaction_create_t& event) -> void {
 /////////////////////////////////////
 /////////////////////////////////////
 auto BasePlugin::sendPlugins(const dpp::interaction_create_t& event) -> void {
-    auto title       = fmt::format("Inquisitor {}.{} loaded plugins",
+    auto title       = storm::core::format("Inquisitor {}.{} loaded plugins",
                                          m_major_version,
                                          m_minor_version);
 
@@ -123,7 +123,7 @@ auto BasePlugin::sendPlugins(const dpp::interaction_create_t& event) -> void {
 /////////////////////////////////////
 /////////////////////////////////////
 auto BasePlugin::sendAbout(const dpp::interaction_create_t &event) -> void {
-    auto title       = fmt::format("Inquisitor version {}.{}",
+    auto title       = storm::core::format("Inquisitor version {}.{}",
                                          m_major_version,
                                          m_minor_version);
 

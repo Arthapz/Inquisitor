@@ -99,7 +99,7 @@ auto GalleryPlugin::onMessageReceived(const dpp::message_create_t &event, dpp::c
 #endif
 
     bot.thread_create_with_message(
-        fmt::format("galerie-{}-{}/{}/{}", name, d, m, y),
+        storm::core::format("galerie-{}-{}/{}/{}", name, d, m, y),
         message.channel_id,
         message.id,
         1440,

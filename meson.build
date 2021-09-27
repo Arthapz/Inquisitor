@@ -33,7 +33,6 @@ if get_option('shader_plugin').enabled()
 endif
 stormkit_module_dep = dependency('stormkit_module')
 json_dep            = dependency('nlohmann_json')
-fmt_dep             = dependency('fmt')
 if compiler.get_argument_syntax() == 'msvc'
 curl_dep            = dependency('CURL', method: 'cmake', modules: ['CURL::libcurl'])
 else
@@ -47,7 +46,6 @@ dependencies = [stormkit_core_dep,
                 stormkit_log_dep,
                 stormkit_module_dep,
                 json_dep,
-                fmt_dep,
                 curl_dep,
                 threads_dep,
                 dpp_dep]
