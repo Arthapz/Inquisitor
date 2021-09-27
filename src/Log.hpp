@@ -8,3 +8,7 @@
 #include <storm/log/LogHandler.hpp>
 
 LOGGER("Inquisitor")
+
+namespace dpp {
+    LOGGER("DPP")
+}

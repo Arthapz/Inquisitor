@@ -88,6 +88,28 @@ Inquisitor::Inquisitor() noexcept {
 
     m_bot = std::make_unique<dpp::cluster>(m_token);
 
+    m_bot->on_log([this](const auto &event){
+        switch(event.severity) {
+            case dpp::ll_debug:
+                dpp::dlog("{}", event.message);
+                break;
+            case dpp::ll_info:
+                dpp::ilog("{}", event.message);
+                break;
+            case dpp::ll_warning:
+                dpp::wlog("{}", event.message);
+                break;
+            case dpp::ll_error:
+                dpp::elog("{}", event.message);
+                break;
+            case dpp::ll_critical:
+                dpp::flog("{}", event.message);
+                break;
+            default:
+                break;
+        }
+    });
+
     m_bot->on_ready([this](const auto &event) {
         ilog("{} logged as", m_bot->me.username);
         loadPlugins();
