@@ -7,6 +7,10 @@
 #undef FMT_HEADER_ONLY
 #include "Log.hpp"
 
+#if __cpp_lib_chrono < 201907L
+    #include <ctime>
+#endif
+
 INQUISITOR_PLUGIN(GameOctoberPlugin)
 
 static constexpr auto REGEX = R"(https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*))";
@@ -92,12 +96,22 @@ auto GameOctoberPlugin::onMessageReceived(const dpp::message_create_t &event, dp
         message.author->username : message.member.nickname;
 
     auto now = std::chrono::system_clock::now();
+#if __cpp_lib_chrono >= 201907L
     auto tp = std::chrono::zoned_time{std::chrono::current_zone(), now}.get_local_time();
     auto day = std::chrono::floor<std::chrono::days>(tp);
     auto ymd = std::chrono::year_month_day{day};
 
+    auto d = std::uint32_t{ymd.day()};
+#else
+    std::time_t tt = std::chrono::system_clock::to_time_t(now);
+    std::tm utc_tm = *gmtime(&tt);
+    std::tm local_tm = *localtime(&tt);
+
+    auto d = utc_tm.tm_mday;
+#endif
+
     bot.thread_create_with_message(
-        fmt::format("gameoctober-{}-{}", name, std::uint32_t{ymd.day()}),
+        fmt::format("gameoctober-{}-{}", name, d),
         message.channel_id,
         message.id,
         1440,
