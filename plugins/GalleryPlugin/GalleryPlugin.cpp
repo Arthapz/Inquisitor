@@ -86,16 +86,20 @@ auto GalleryPlugin::onMessageReceived(const dpp::message_create_t &event, dpp::c
     auto ymd = std::chrono::year_month_day{day};
 
     auto d = std::uint32_t{ymd.day()};
+    auto m = std::uint32_t{ymd.month()};
+    auto y = std::int32_t{ymd.year()};
 #else
     std::time_t tt = std::chrono::system_clock::to_time_t(now);
     std::tm utc_tm = *gmtime(&tt);
     std::tm local_tm = *localtime(&tt);
 
     auto d = utc_tm.tm_mday;
+    auto m = utc_tm.tm_mon + 1 << '-';
+    auto y = utc_tm.tm_year + 1900;
 #endif
 
     bot.thread_create_with_message(
-        fmt::format("galerie-{}-{}", name, d),
+        fmt::format("galerie-{}-{}/{}/{}", name, d, m, y),
         message.channel_id,
         message.id,
         1440,
