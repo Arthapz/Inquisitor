@@ -39,6 +39,6 @@ class GameOctoberPlugin final: public PluginInterface {
 
     std::vector<Guild> m_guilds;
 
-    std::atomic<std::size_t> m_current_word = 0u;
+    std::atomic<std::ssize_t> m_current_word = -1;
     storm::core::Timer<std::chrono::high_resolution_clock, std::chrono::minutes> m_timer;
 };

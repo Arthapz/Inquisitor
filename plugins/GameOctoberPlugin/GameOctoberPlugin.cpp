@@ -115,7 +115,7 @@ auto GameOctoberPlugin::onReady(const dpp::ready_t &event, dpp::cluster &bot) ->
         if(m_current_word < std::size(THEMES)) {
                 bot.message_create(dpp::message {
                         891960563649896449ull,
-                        storm::core::format("A vos claviers ! Le thème du jour est \"{}\".", THEMES[m_current_word++])
+                        storm::core::format("A vos claviers ! Le thème du jour est \"{}\".", THEMES[++m_current_word])
                     },
                     [](const auto &event){
                         if(event.is_error()) elog("{}", event.http_info.body);
