@@ -129,7 +129,7 @@ auto GameOctoberPlugin::onReady(const dpp::ready_t &event, dpp::cluster &bot) ->
 /////////////////////////////////////
 auto GameOctoberPlugin::onMessageReceived(const dpp::message_create_t &event, dpp::cluster &bot) -> void {
     const auto &message = *event.msg;
-    if(message.author->id != bot.me.id) return;
+    if(message.author->id == bot.me.id) return;
 
     auto it = std::ranges::find_if(m_guilds, [channel_id = event.msg->channel_id](const auto &guild){ return guild.gallery == channel_id; });
 
