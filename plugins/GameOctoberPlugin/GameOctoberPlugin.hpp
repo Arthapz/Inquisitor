@@ -7,6 +7,11 @@
 /////////// - STL - ///////////
 #include <string>
 #include <regex>
+#include <chrono>
+#include <atomic>
+
+/////////// - StormKit::Core - ///////////
+#include <storm/core/Timer.hpp>
 
 /////////// - Inquisitor-API - ///////////
 #include <PluginInterface.hpp>
@@ -19,6 +24,7 @@ class GameOctoberPlugin final: public PluginInterface {
     [[nodiscard]] std::string_view name() const override;
     [[nodiscard]] std::vector<Command> commands() const override;
 
+    void onReady(const dpp::ready_t &, dpp::cluster &) override;
     void onMessageReceived(const dpp::message_create_t &, dpp::cluster &) override;
   protected:
     void initialize(const json &options) override;
@@ -32,4 +38,7 @@ class GameOctoberPlugin final: public PluginInterface {
     };
 
     std::vector<Guild> m_guilds;
+
+    std::atomic<std::size_t> m_current_word = 0u;
+    storm::core::Timer<std::chrono::high_resolution_clock, std::chrono::minutes> m_timer;
 };

@@ -12,6 +12,38 @@
 
 INQUISITOR_PLUGIN(BasePlugin)
 
+using namespace std::literals;
+
+static constexpr auto ASCII_ART_LOGO =
+     "\nmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmhyhhhhhhhyhmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+dmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmysmmmmmmmmmshmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+dmmmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmysmmmmmmmmmmmsymmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+dmmmmmmmmmmmm+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmhommmmmmmmmmmmmsymmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+dmmmmmmmmmmmmmm+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmdddddddmmmmdddmmmmmddddddmmmddddddy+dmmmmdhysydmmmmssddddmmmmmddddddddmdddmmmmmddmmmmddddmmmmm"
+     "mmmmm/       +mm+   ymmmy     `-sm/        dmh/`     .+mo     `-smmm       `m-  -mmmy .dmmy   ymmmmm"
+     "mmmmmo::   ::smd`   .mmmy   ::`  so:::`   /ms   -:o+. .so  `::   smm   -:::/md`  +md.  :md`  +mmmmmm"
+     "mmmmmmmh   dmmm:     /mmy   ss.  +mmm/  `ymm`  om/hmmhmmo  `oo`  omm   -::::mmy   y:    s-  .mmmmmmm"
+     "mmmmmmmh   dmmy   o   hmy       :mmy.  -dmmm   yyo+mmmmmo       /mmm        mmm/           `hmmmmmmm"
+     "mmmmmmmh   dmm.  /m/  .my   oosdmmo   `+sssm+  `-s/o:./ho  `/`  .hmm   /ssssmmmm.    o-    smmmmmmmm"
+     "mmmmmmmh   dmo  `dmm.  +y   mmmmmm/        hms.      `:do  .h+:  `ym        mmmmh`  :mh   :mmmmmmmmm"
+     "mmmmmmmmsssmmysshmmmhsssdsssmmmmmmyss:ossssmmmd/o++:+dmmdssymohssssmssssssssmmmmmyssdmmyssdmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmd+mmmmmmmmysmmmd+mmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmshmmmmmmmm+dmmmmsymmmmmmmmohmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmd+mmmmmmmmhsmmmmmm+mmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmsymmmmmmmm+dmmmmmmysmmmmmmmmsymmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmd+mmmmmmmmhommmmmmmm+dmmmmmmmd+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmsymmmmmmmmodmmmmmmmmysmmmmmmmmsymmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm+mmmmmmmmhommmmmmmmmm+dmmmmmmmm+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmhoyyyyyyyyohmmmmmmmmmmhsyyyyyyyyohmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+     "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"sv;
+
 /////////////////////////////////////
 /////////////////////////////////////
 BasePlugin::BasePlugin() noexcept = default;
@@ -82,7 +114,7 @@ auto BasePlugin::initialize(const json& options) -> void {
         m_plugins_string += storm::core::format(PLUGIN_FORMAT, plugin_ptr->name());
     }
 
-    m_about_string = storm::core::format("**author**: Arthapz\n**organization**: Tapzcrew\n**sources**: https://gitlab.com/tapzcrew/inquisitor-cpp", m_major_version, m_minor_version);
+    m_about_string = storm::core::format("{}\n\n**author**: Arthapz\n**organization**: Tapzcrew\n**sources**: https://gitlab.com/tapzcrew/inquisitor-cpp", ASCII_ART_LOGO, m_major_version, m_minor_version);
 }
 
 /////////////////////////////////////

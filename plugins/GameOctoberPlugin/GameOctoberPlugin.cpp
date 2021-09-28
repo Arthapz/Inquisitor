@@ -13,7 +13,43 @@
 
 INQUISITOR_PLUGIN(GameOctoberPlugin)
 
+using namespace std::literals;
+
 static constexpr auto REGEX = R"(https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*))";
+
+static constexpr auto THEMES = std::array {
+    "Cristal"sv,
+    "Costume"sv,
+    "Navire"sv,
+    "Noeud"sv,
+    "Corbeau"sv,
+    "Esprit"sv,
+    "Ventilateur"sv,
+    "Montre"sv,
+    "Pression"sv,
+    "Choix / Pioche"
+    "Acide / Aigre"sv,
+    "Collé"sv,
+    "Toiture"sv,
+    "Cocher"sv,
+    "Casque"sv,
+    "Boussole"sv,
+    "Percuter"sv,
+    "Lune"sv,
+    "Boucle / Circuit"sv,
+    "Germer"sv,
+    "Flou / Vague"sv,
+    "Ouvert"sv,
+    "Fuir"sv,
+    "Disparu"sv,
+    "Eclaboussure"sv,
+    "Relier"sv,
+    "Etincelle"sv,
+    "Crousillant"sv,
+    "Pièce"sv,
+    "Glisser"sv,
+    "Risque / Danger"sv,
+};
 
 /////////////////////////////////////
 /////////////////////////////////////
@@ -70,6 +106,23 @@ auto GameOctoberPlugin::initialize(const json &options) -> void {
 
         m_guilds.emplace_back(guild);
     }
+}
+
+/////////////////////////////////////
+/////////////////////////////////////
+auto GameOctoberPlugin::onReady(const dpp::ready_t &event, dpp::cluster &bot) -> void {
+    m_timer.makeTask(1min, 1min, [this, &bot](){
+        if(m_current_word < std::size(THEMES)) {
+                bot.message_create(dpp::message {
+                        891960563649896449ull,
+                        storm::core::format("A vos claviers ! Le thème du jour est \"{}\".", THEMES[m_current_word++])
+                    },
+                    [](const auto &event){
+                        if(event.is_error()) elog("{}", event.http_info.body);
+                    }
+                );
+        }
+    });
 }
 
 /////////////////////////////////////
