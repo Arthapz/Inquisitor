@@ -128,16 +128,17 @@ auto GameOctoberPlugin::onReady(const dpp::ready_t &event, dpp::cluster &bot) ->
 /////////////////////////////////////
 /////////////////////////////////////
 auto GameOctoberPlugin::onMessageReceived(const dpp::message_create_t &event, dpp::cluster &bot) -> void {
+    const auto &message = *event.msg;
+    if(message.author->id != bot.me.id) return;
+
     auto it = std::ranges::find_if(m_guilds, [channel_id = event.msg->channel_id](const auto &guild){ return guild.gallery == channel_id; });
 
     if(it == std::ranges::end(m_guilds)) return;
 
-    const auto &message = *event.msg;
-
     auto matches = std::smatch{};
     const auto has_url = std::regex_search(message.content, matches, m_regex);
 
-    if(std::empty(message.attachments) && message.author->id != bot.me.id && !has_url) {
+    if(std::empty(message.attachments) && !has_url) {
         bot.message_delete(message.id, message.channel_id, [](const auto &event){
                 if(event.is_error()) elog("{}", event.http_info.body);
         });
