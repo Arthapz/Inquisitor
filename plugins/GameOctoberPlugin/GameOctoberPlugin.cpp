@@ -121,7 +121,7 @@ auto GameOctoberPlugin::onReady(const dpp::ready_t &event, dpp::cluster &bot) ->
                         if(event.is_error()) elog("{}", event.http_info.body);
                     }
                 );
-        }
+        } else m_current_word = 0;
     });
 }
 
@@ -165,7 +165,7 @@ auto GameOctoberPlugin::onMessageReceived(const dpp::message_create_t &event, dp
 #endif
 
     bot.thread_create_with_message(
-        storm::core::format("gameoctober-{}-{}", name, d),
+        storm::core::format("{}-{}-{}", THEMES[m_current_word], name, d),
         message.channel_id,
         message.id,
         1440,
