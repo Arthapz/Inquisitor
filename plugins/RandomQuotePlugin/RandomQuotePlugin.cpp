@@ -32,9 +32,9 @@ RandomQuotePlugin::RandomQuotePlugin()
     const auto string =
         std::string { std::istreambuf_iterator<char> { stream }, std::istreambuf_iterator<char> {} };
 
-    m_quote_list = storm::core::split(string, '\n');
+    m_quote_list = stormkit::core::split(string, '\n');
 
-    m_quote_distribution = std::uniform_int_distribution<storm::core::UInt32>{0, gsl::narrow_cast<storm::core::UInt32>(std::size(m_quote_list))};
+    m_quote_distribution = std::uniform_int_distribution<stormkit::core::UInt32>{0, gsl::narrow_cast<stormkit::core::UInt32>(std::size(m_quote_list))};
 }
 
 /////////////////////////////////////

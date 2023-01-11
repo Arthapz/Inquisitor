@@ -37,12 +37,12 @@ class RandomQuotePlugin final: public PluginInterface {
     std::string getQuote();
 
     std::mt19937 m_generator;
-    std::uniform_int_distribution<storm::core::UInt32> m_send_distribution;
-    std::uniform_int_distribution<storm::core::UInt32> m_quote_distribution;
+    std::uniform_int_distribution<stormkit::core::UInt32> m_send_distribution;
+    std::uniform_int_distribution<stormkit::core::UInt32> m_quote_distribution;
 
     std::vector<std::string> m_channels;
 
     std::vector<std::string> m_quote_list;
 
-    storm::core::HashMap<std::string, Clock::time_point> m_last_sended_messages;
+    stormkit::core::HashMap<std::string, Clock::time_point> m_last_sended_messages;
 };

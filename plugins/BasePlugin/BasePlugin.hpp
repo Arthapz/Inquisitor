@@ -32,8 +32,8 @@ class BasePlugin final: public PluginInterface {
     void sendPlugins(const dpp::interaction_create_t &);
     void sendAbout(const dpp::interaction_create_t &msg);
 
-    storm::core::UInt32 m_major_version;
-    storm::core::UInt32 m_minor_version;
+    stormkit::core::UInt32 m_major_version;
+    stormkit::core::UInt32 m_minor_version;
 
     std::vector<std::string> m_channels;
 

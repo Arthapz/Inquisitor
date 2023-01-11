@@ -1,2 +1,2 @@
-# Inquisitor-Cpp
+# Inquisitor
 

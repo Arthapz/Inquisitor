@@ -41,7 +41,7 @@ INQUISITOR_PLUGIN(ShaderPlugin)
 
 using namespace std::literals;
 using namespace storm;
-using namespace storm::render;
+using namespace stormkit::render;
 
 static constexpr auto VIDEO_FORMAT = "mp4";
 
@@ -744,13 +744,13 @@ auto ShaderPlugin::render(std::span<const SpirvID> spirv, std::span<const image:
     copy_command_buffer.begin(true);
     copy_command_buffer.transitionTextureLayout(render_image, TextureLayout::Color_Attachment_Optimal, TextureLayout::Transfer_Src_Optimal);
     copy_command_buffer.transitionTextureLayout(destination, TextureLayout::Undefined, TextureLayout::Transfer_Dst_Optimal);
-    
+
     if(m_has_blit) {
         auto region = BlitRegion {
             .source_offset = { core::ExtentuOffset{0u, 0u, 0u}, core::ExtentuOffset{extent.width, extent.height, 1u} },
             .destination_offset = { core::ExtentuOffset{0u, 0u, 0u}, core::ExtentuOffset{extent.width, extent.height, 1u} }
         };
-        
+
         copy_command_buffer.blitTexture(render_image,
                                         destination,
                                         TextureLayout::Transfer_Src_Optimal,
@@ -766,7 +766,7 @@ auto ShaderPlugin::render(std::span<const SpirvID> spirv, std::span<const image:
                                         {},
                                         extent);
     }
-    
+
     copy_command_buffer.end();
 
     copy_command_buffer.build();
@@ -774,7 +774,7 @@ auto ShaderPlugin::render(std::span<const SpirvID> spirv, std::span<const image:
     copy_command_buffer.submit({}, {}, &fence);
 
     fence.wait();
-    
+
     auto data = m_device->mapVmaMemory(destination.vkAllocation());
 
     auto subresource = vk::ImageSubresource{ vk::ImageAspectFlagBits::eColor, 0, 0 };

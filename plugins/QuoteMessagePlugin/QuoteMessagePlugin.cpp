@@ -60,7 +60,7 @@ auto QuoteMessagePlugin::onMessageReceived(const dpp::message_create_t &event, d
 
             auto author = dpp::embed_author{
                 .name = name,
-                .url  = storm::core::format("https://discordapp.com/users/{}", message.author->id),
+                .url  = std::format("https://discordapp.com/users/{}", message.author->id),
                 .icon_url = message.author->get_avatar_url()
             };
 

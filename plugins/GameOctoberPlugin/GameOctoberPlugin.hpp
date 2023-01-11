@@ -35,7 +35,7 @@ class GameOctoberPlugin final: public PluginInterface {
     dpp::snowflake m_channel_id;
 
     std::atomic<std::size_t> m_current_word = 0;
-    storm::core::Timer<std::chrono::high_resolution_clock, std::chrono::minutes> m_timer;
+    stormkit::core::Timer<std::chrono::high_resolution_clock, std::chrono::minutes> m_timer;
 
     std::atomic_bool m_started = false;
 };

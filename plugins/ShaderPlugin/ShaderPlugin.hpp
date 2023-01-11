@@ -51,7 +51,7 @@ class ShaderPlugin final: public PluginInterface {
     void initialize(const json &options) override;
 
   private:
-    using ErrorString = storm::core::NamedType<std::string, struct Tag>;
+    using ErrorString = stormkit::core::NamedType<std::string, struct Tag>;
 
     std::optional<std::string> getAttachedGlsl(const json &msg) const;
     std::optional<json> getAttachedJson(const json &msg) const;
@@ -59,28 +59,28 @@ class ShaderPlugin final: public PluginInterface {
     std::regex m_glsl_regex;
     std::regex m_json_regex;
 
-    std::optional<std::pair<std::string, std::string>> compileShader(std::string_view glsl, std::vector<storm::render::SpirvID> &output, std::size_t texture_count);
+    std::optional<std::pair<std::string, std::string>> compileShader(std::string_view glsl, std::vector<stormkit::render::SpirvID> &output, std::size_t texture_count);
 
-    void singleFrame(std::vector<std::string> textures, std::string_view channel_id, std::string_view glsl, const storm::core::Extentu &extent);
-    void multipleFrame(std::vector<std::string>textures, storm::core::UInt32 frame_count, storm::core::UInt32 fps, std::string_view channel_id, std::string_view glsl, const storm::core::Extentu &extent);
+    void singleFrame(std::vector<std::string> textures, std::string_view channel_id, std::string_view glsl, const stormkit::core::Extentu &extent);
+    void multipleFrame(std::vector<std::string>textures, stormkit::core::UInt32 frame_count, stormkit::core::UInt32 fps, std::string_view channel_id, std::string_view glsl, const stormkit::core::Extentu &extent);
 
-    std::variant<std::pair<storm::core::ByteArray, storm::core::UInt32>, ErrorString> render(std::span<const storm::render::SpirvID> spirv, std::span<const storm::image::Image> textures, storm::core::Extentu extent, storm::core::UInt32 frame, float time);
+    std::variant<std::pair<stormkit::core::ByteArray, stormkit::core::UInt32>, ErrorString> render(std::span<const stormkit::render::SpirvID> spirv, std::span<const stormkit::image::Image> textures, stormkit::core::Extentu extent, stormkit::core::UInt32 frame, float time);
 
-    std::variant<storm::core::ByteArray, ErrorString> encode(std::span<std::pair<storm::core::ByteArray, storm::core::UInt32>> data, const storm::core::Extentu &extent, storm::core::UInt32 fps);
+    std::variant<stormkit::core::ByteArray, ErrorString> encode(std::span<std::pair<stormkit::core::ByteArray, stormkit::core::UInt32>> data, const stormkit::core::Extentu &extent, stormkit::core::UInt32 fps);
 
-    storm::render::InstanceOwnedPtr m_instance;
+    stormkit::render::InstanceOwnedPtr m_instance;
 
-    storm::render::DeviceOwnedPtr m_device;
+    stormkit::render::DeviceOwnedPtr m_device;
 
-    storm::render::QueueConstPtr m_queue;
+    stormkit::render::QueueConstPtr m_queue;
 
-    storm::render::ShaderOwnedPtr m_vertex_shader;
+    stormkit::render::ShaderOwnedPtr m_vertex_shader;
 
     bool m_has_blit = true;
 
     std::atomic_bool m_is_currently_rendering = false;
 
-    storm::core::Extentu m_max_extent;
+    stormkit::core::Extentu m_max_extent;
 
     AVFormatContextScoped m_avformat_context;
 };

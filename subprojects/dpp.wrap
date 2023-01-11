@@ -1,8 +1,0 @@
-[wrap-git]
-directory=dpp
-url=https://github.com/Arthapz/dpp.git
-revision=master
-depth=1
-
-[provide]
-dpp = dpp_dep

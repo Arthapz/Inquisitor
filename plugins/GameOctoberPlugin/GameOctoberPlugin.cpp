@@ -115,7 +115,7 @@ auto GameOctoberPlugin::onReady(const dpp::ready_t &event, dpp::cluster &bot) ->
             std::cout << m_current_word << std::endl;
                 bot.message_create(dpp::message {
                         m_channel_id,
-                        storm::core::format("A vos claviers ! Le thème du jour est \"{}\".", THEMES[m_current_word++])
+                        std::format("A vos claviers ! Le thème du jour est \"{}\".", THEMES[m_current_word++])
                     },
                     [](const auto &event){
                         if(event.is_error()) elog("{}", event.http_info.body);
@@ -162,7 +162,7 @@ auto GameOctoberPlugin::onMessageReceived(const dpp::message_create_t &event, dp
 #endif
     if(m_started)
     bot.thread_create_with_message(
-        storm::core::format("{}-{}-{}-gameoctober-2021", THEMES[m_current_word - 1u], name, d),
+        std::format("{}-{}-{}-gameoctober-2021", THEMES[m_current_word - 1u], name, d),
         m_channel_id,
         message.id,
         1440,

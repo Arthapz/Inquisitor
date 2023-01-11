@@ -71,7 +71,7 @@ auto BasePlugin::commands() const -> std::vector<Command> {
 /////////////////////////////////////
 /////////////////////////////////////
 auto BasePlugin::onReady([[maybe_unused]] const dpp::ready_t &event, dpp::cluster &bot) -> void {
-    const auto str =  storm::core::format("-- :robot: Inquisitor V{}.{} initialized :robot: --", m_major_version, m_minor_version);
+    const auto str =  std::format("-- :robot: Inquisitor V{}.{} initialized :robot: --", m_major_version, m_minor_version);
 
     for(const auto &id : m_channels) {
         auto id_as_snowflake = static_cast<dpp::snowflake>(std::stoll(id));
@@ -95,8 +95,8 @@ auto BasePlugin::onCommand(const dpp::interaction_create_t &event, [[maybe_unuse
 /////////////////////////////////////
 /////////////////////////////////////
 auto BasePlugin::initialize(const json& options) -> void {
-    m_major_version = options["inquisitor"]["major"].get<storm::core::UInt32>();
-    m_minor_version = options["inquisitor"]["minor"].get<storm::core::UInt32>();
+    m_major_version = options["inquisitor"]["major"].get<stormkit::core::UInt32>();
+    m_minor_version = options["inquisitor"]["minor"].get<stormkit::core::UInt32>();
 
     m_channels = options["channels"].get<std::vector<std::string>>();
 
@@ -105,22 +105,22 @@ auto BasePlugin::initialize(const json& options) -> void {
     m_help_string = "";
     for(const auto &plugin_ptr : m_others) {
         if(!std::empty(plugin_ptr->commands())) {
-            m_help_string += storm::core::format("\n\n------- 🔵 **{}** -------\n", plugin_ptr->name());
+            m_help_string += std::format("\n\n------- 🔵 **{}** -------\n", plugin_ptr->name());
 
             for(const auto command : plugin_ptr->commands())
-                m_help_string += storm::core::format("{} -> {}\n", command.name, command.description);
+                m_help_string += std::format("{} -> {}\n", command.name, command.description);
         }
 
-        m_plugins_string += storm::core::format(PLUGIN_FORMAT, plugin_ptr->name());
+        m_plugins_string += std::format(PLUGIN_FORMAT, plugin_ptr->name());
     }
 
-    m_about_string = storm::core::format("{}\n\n**author**: Arthapz\n**organization**: Tapzcrew\n**sources**: https://gitlab.com/tapzcrew/inquisitor-cpp", ASCII_ART_LOGO, m_major_version, m_minor_version);
+    m_about_string = std::format("{}\n\n**author**: Arthapz\n**organization**: Tapzcrew\n**sources**: https://gitlab.com/tapzcrew/inquisitor-cpp", ASCII_ART_LOGO, m_major_version, m_minor_version);
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
 auto BasePlugin::sendHelp(const dpp::interaction_create_t& event) -> void {
-    auto title = storm::core::format("Inquisitor {}.{} commands",
+    auto title = std::format("Inquisitor {}.{} commands",
                              m_major_version,
                              m_minor_version);
 
@@ -137,7 +137,7 @@ auto BasePlugin::sendHelp(const dpp::interaction_create_t& event) -> void {
 /////////////////////////////////////
 /////////////////////////////////////
 auto BasePlugin::sendPlugins(const dpp::interaction_create_t& event) -> void {
-    auto title       = storm::core::format("Inquisitor {}.{} loaded plugins",
+    auto title       = std::format("Inquisitor {}.{} loaded plugins",
                                          m_major_version,
                                          m_minor_version);
 
@@ -155,7 +155,7 @@ auto BasePlugin::sendPlugins(const dpp::interaction_create_t& event) -> void {
 /////////////////////////////////////
 /////////////////////////////////////
 auto BasePlugin::sendAbout(const dpp::interaction_create_t &event) -> void {
-    auto title       = storm::core::format("Inquisitor version {}.{}",
+    auto title       = std::format("Inquisitor version {}.{}",
                                          m_major_version,
                                          m_minor_version);
 
