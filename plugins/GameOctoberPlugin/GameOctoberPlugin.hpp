@@ -32,13 +32,10 @@ class GameOctoberPlugin final: public PluginInterface {
   private:
     std::regex m_regex;
 
-    struct Guild {
-        dpp::snowflake gallery;
-        dpp::snowflake discussions;
-    };
+    dpp::snowflake m_channel_id;
 
-    std::vector<Guild> m_guilds;
-
-    std::atomic<std::ssize_t> m_current_word = -1;
+    std::atomic<std::size_t> m_current_word = 0;
     storm::core::Timer<std::chrono::high_resolution_clock, std::chrono::minutes> m_timer;
+
+    std::atomic_bool m_started = false;
 };

@@ -75,12 +75,13 @@ auto RandomQuotePlugin::onMessageReceived(const dpp::message_create_t &event, dp
 
     auto &tp = m_last_sended_messages[it->first];
 
-    if(std::chrono::duration_cast<std::chrono::seconds>(now - tp) < 1h) return;
+    if(std::chrono::duration_cast<std::chrono::seconds>(now - tp) < 10min) return;
 
     tp = now;
 
     auto n = m_send_distribution(m_generator);
-    if(n == 50) {
+    ilog("{}", n);
+    if(n >= 50 && n <= 60) {
         auto quote = getQuote();
 
         if(!std::empty(quote))
@@ -104,8 +105,10 @@ auto RandomQuotePlugin::initialize(const json &options) -> void {
 
     m_channels = options["channels"].get<std::vector<std::string>>();
 
-    for(const auto &channel : m_channels)
+    for(const auto &channel : m_channels) {
+        ilog("{}", channel);
         m_last_sended_messages[channel] = Clock::now();
+    }
 }
 
 /////////////////////////////////////

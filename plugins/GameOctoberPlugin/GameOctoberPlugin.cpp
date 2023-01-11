@@ -27,7 +27,7 @@ static constexpr auto THEMES = std::array {
     "Ventilateur"sv,
     "Montre"sv,
     "Pression"sv,
-    "Choix / Pioche"
+    "Choix / Pioche"sv,
     "Acide / Aigre"sv,
     "Collé"sv,
     "Toiture"sv,
@@ -75,53 +75,54 @@ auto GameOctoberPlugin::commands() const -> std::vector<Command> {
 /////////////////////////////////////
 /////////////////////////////////////
 auto GameOctoberPlugin::initialize(const json &options) -> void {
-    if(!options.contains("channels")) {
+    if(!options.contains("channel")) {
         elog("Missing channels array in options");
         return;
     }
 
-    if(!options["channels"].is_array()) {
+    if(!options["channel"].is_string()) {
         elog("Option entry \"channels\" array need to be an array");
         return;
     }
 
-    auto guilds = options["channels"].get<std::vector<json>>();
-
-
-    for(auto _guild : guilds) {
-        if(!_guild.is_object()) {
-            elog("Option entry \"channels\" array need to be an array");
-            return;
-        }
-
-        if(!_guild.contains("gallery") || !_guild.contains("discussions")) {
-            elog("Option entry \"channels\" is ill-formed");
-            return;
-        }
-
-        auto guild = Guild {
-            static_cast<dpp::snowflake>(std::stoll(_guild["gallery"].get<std::string>())),
-            static_cast<dpp::snowflake>(std::stoll(_guild["discussions"].get<std::string>()))
-        };
-
-        m_guilds.emplace_back(guild);
-    }
+    m_channel_id = static_cast<dpp::snowflake>(std::stoll(options["channel"].get<std::string>()));
 }
 
 /////////////////////////////////////
 /////////////////////////////////////
 auto GameOctoberPlugin::onReady(const dpp::ready_t &event, dpp::cluster &bot) -> void {
     m_timer.makeTask(1min, 1min, [this, &bot](){
-        if(m_current_word < std::size(THEMES)) {
+        auto now = std::chrono::system_clock::now();
+#if __cpp_lib_chrono >= 201907L
+        auto tp = std::chrono::zoned_time{std::chrono::current_zone(), now}.get_local_time();
+        auto day = std::chrono::floor<std::chrono::days>(tp);
+        auto time = std::chrono::hh_mm_ss{std::chrono::floor<std::chrono::milliseconds>(tp-day)};
+        auto ymd = std::chrono::year_month_day{day};
+
+        auto m = std::uint32_t{ymd.month()};
+        auto h = time.hours().count();
+        auto min = time.minutes().count();
+#else
+        std::time_t tt = std::chrono::system_clock::to_time_t(now);
+        std::tm utc_tm = *std::gmtime(&tt);
+        std::tm local_tm = *std::localtime(&tt);
+
+        auto m = local_tm.tm_mon + 1;
+        auto h = local_tm.tm_hour;
+        auto min = local_tm.tm_min;
+#endif
+        if(m == 10 && h == 0 && min == 0) {
+            std::cout << m_current_word << std::endl;
                 bot.message_create(dpp::message {
-                        891960563649896449ull,
-                        storm::core::format("A vos claviers ! Le thème du jour est \"{}\".", THEMES[++m_current_word])
+                        m_channel_id,
+                        storm::core::format("A vos claviers ! Le thème du jour est \"{}\".", THEMES[m_current_word++])
                     },
                     [](const auto &event){
                         if(event.is_error()) elog("{}", event.http_info.body);
                     }
                 );
-        } else m_current_word = 0;
+            m_started = true;
+        }
     });
 }
 
@@ -129,11 +130,7 @@ auto GameOctoberPlugin::onReady(const dpp::ready_t &event, dpp::cluster &bot) ->
 /////////////////////////////////////
 auto GameOctoberPlugin::onMessageReceived(const dpp::message_create_t &event, dpp::cluster &bot) -> void {
     const auto &message = *event.msg;
-    if(message.author->id == bot.me.id) return;
-
-    auto it = std::ranges::find_if(m_guilds, [channel_id = event.msg->channel_id](const auto &guild){ return guild.gallery == channel_id; });
-
-    if(it == std::ranges::end(m_guilds)) return;
+    if(message.author->id == bot.me.id || message.channel_id != m_channel_id) return;
 
     auto matches = std::smatch{};
     const auto has_url = std::regex_search(message.content, matches, m_regex);
@@ -163,10 +160,10 @@ auto GameOctoberPlugin::onMessageReceived(const dpp::message_create_t &event, dp
 
     auto d = utc_tm.tm_mday;
 #endif
-
+    if(m_started)
     bot.thread_create_with_message(
-        storm::core::format("{}-{}-{}-gameoctober", THEMES[m_current_word], name, d),
-        message.channel_id,
+        storm::core::format("{}-{}-{}-gameoctober-2021", THEMES[m_current_word - 1u], name, d),
+        m_channel_id,
         message.id,
         1440,
         [](const auto &event) {
